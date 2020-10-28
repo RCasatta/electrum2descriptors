@@ -1,0 +1,1 @@
+# electrum2descriptors
