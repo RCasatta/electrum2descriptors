@@ -3,6 +3,13 @@ name = "electrum2descriptors"
 version = "0.1.0"
 authors = ["Riccardo Casatta <riccardo@casatta.it>"]
 edition = "2018"
+description = "Converts electrum xpubs (like vpub, ypub...) into output descriptors"
+license = "MIT"
+homepage = "https://github.com/RCasatta/electrum2descriptors"
+documentation = "https://docs.rs/electrum2descriptors/"
+repository = "https://github.com/RCasatta/electrum2descriptors"
+keywords = ["bitcoin", "electrum", "descriptors"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
