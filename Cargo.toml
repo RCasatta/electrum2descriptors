@@ -15,3 +15,6 @@ readme = "README.md"
 
 [dependencies]
 bitcoin = "0.25.2"
+
+[dev-dependencies]
+miniscript = "3.0.0"
