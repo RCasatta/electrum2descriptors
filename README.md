@@ -1,6 +1,6 @@
 # electrum2descriptors
 
-Converts [slip32](https://github.com/satoshilabs/slips/blob/master/slip-0132.md) watch-only extended pub keys (like the vpub, ypub, etc. used by Electrum) into [output descriptors](https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md)
+Converts [slip-0132](https://github.com/satoshilabs/slips/blob/master/slip-0132.md) watch-only extended pub keys (like the vpub, ypub, etc. used by Electrum) into [output descriptors](https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md)
 
 ## Usage
 
