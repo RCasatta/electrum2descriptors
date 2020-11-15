@@ -1,5 +1,7 @@
 # electrum2descriptors
 
+[![crates.io](https://img.shields.io/crates/v/electrum2descriptors.svg)](https://crates.io/crates/electrum2descriptors)
+
 Converts [slip-0132](https://github.com/satoshilabs/slips/blob/master/slip-0132.md) watch-only extended pub keys (like the vpub, ypub, etc. used by Electrum) into [output descriptors](https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md)
 
 ## Usage
