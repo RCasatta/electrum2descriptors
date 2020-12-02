@@ -13,6 +13,14 @@ readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "libelectrum2descriptors"
+path = "src/lib.rs"
+
+[[bin]]
+name = "electrum2descriptors"
+path = "src/bin.rs"
+
 [dependencies]
 bitcoin = "0.25.2"
 
