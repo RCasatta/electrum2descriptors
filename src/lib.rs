@@ -24,10 +24,10 @@ impl FromStr for ElectrumExtendedPubKey {
         let (network, kind) = match_electrum_xpub(&data[0..4]).map_err(|e| e.to_string())?;
 
         let xpub = ExtendedPubKey {
-            network: network,
+            network,
             depth: data[4],
             parent_fingerprint: Fingerprint::from(&data[5..9]),
-            child_number: child_number,
+            child_number,
             chain_code: ChainCode::from(&data[13..45]),
             public_key: PublicKey::from_slice(&data[45..78])
                 .map_err(|e| base58::Error::Other(e.to_string()))
@@ -78,7 +78,7 @@ fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Erro
         [0x02u8, 0x95, 0xb4, 0x3f] => Ok((Network::Bitcoin, "sh(wsh".to_string())), // Ypub
         [0x04u8, 0xb2, 0x47, 0x46] => Ok((Network::Bitcoin, "wpkh".to_string())), // zpub
         [0x02u8, 0xaa, 0x7e, 0xd3] => Ok((Network::Bitcoin, "wsh".to_string())), // Zpub
-        _ => return Err(base58::Error::InvalidVersion(version.to_vec())),
+        _ => Err(base58::Error::InvalidVersion(version.to_vec())),
     }
 }
 
