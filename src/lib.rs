@@ -46,6 +46,11 @@ impl ElectrumExtendedPubKey {
             .map(|i| format!("{}({}/{}/*){}", self.kind, xpub, i, closing_parenthesis))
             .collect()
     }
+
+    /// Returns the xpub
+    pub fn xpub(&self) -> &ExtendedPubKey {
+        &self.xpub
+    }
 }
 
 fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Error> {
@@ -97,6 +102,8 @@ mod tests {
         let descriptors = electrum_xpub.to_descriptors();
         assert_eq!(descriptors[0], "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)");
         assert_eq!(descriptors[1], "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
+        let xpub = electrum_xpub.xpub();
+        assert_eq!(xpub.to_string(), "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
     }
 
     #[test]
