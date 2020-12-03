@@ -23,7 +23,7 @@ impl FromStr for ElectrumExtendedPrivKey {
         let cn_int = u32::from_be_bytes(data[9..13].try_into().unwrap());
         let child_number: ChildNumber = ChildNumber::from(cn_int);
         let (network, kind) = match_electrum_xprv(&data[0..4]).map_err(|e| e.to_string())?;
-        let key = secp256k1::SecretKey::from_slice(&data[45..78]).map_err(|e| e.to_string())?;
+        let key = secp256k1::SecretKey::from_slice(&data[46..78]).map_err(|e| e.to_string())?;
 
         let xprv = ExtendedPrivKey {
             network,
@@ -96,40 +96,17 @@ fn match_electrum_xprv(version: &[u8]) -> Result<(Network, String), base58::Erro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::util::bip32::ChildNumber;
-    use miniscript::descriptor::DescriptorPublicKey;
     use std::str::FromStr;
 
     #[test]
     fn test_vprv() {
-        let electrum_xprv = ElectrumExtendedPrivKey::from_str("xprv9xpXFhFpqdQK3TmytPBqXtGSwS3DLjojFhTGht8gwAAii8py5X6pxeBnQ6ehJiyJ6nDjWGJfZ95WxByFXVkDxHXrqu53WCRGypk2ttuqncb").unwrap();
-        assert_eq!(electrum_xprv.xprv.to_string(),"tprvD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
-        assert_eq!(electrum_xprv.kind, "wpkh");
+        let electrum_xprv = ElectrumExtendedPrivKey::from_str("yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF").unwrap();
+        assert_eq!(electrum_xprv.xprv.to_string(),"xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
+        assert_eq!(electrum_xprv.kind, "sh(wpkh");
         let descriptors = electrum_xprv.to_descriptors();
-        assert_eq!(descriptors[0], "wpkh(tprvD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)");
-        assert_eq!(descriptors[1], "wpkh(tprvD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
+        assert_eq!(descriptors[0], "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/0/*))");
+        assert_eq!(descriptors[1], "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/1/*))");
         let xprv = electrum_xprv.xprv();
-        assert_eq!(xprv.to_string(), "tprvD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
-    }
-
-    #[test]
-    fn test_slip121_vectors() {
-        // from https://github.com/satoshilabs/slips/blob/master/slip-0132.md
-        test_first_address("xprv9xpXFhFpqdQK3TmytPBqXtGSwS3DLjojFhTGht8gwAAii8py5X6pxeBnQ6ehJiyJ6nDjWGJfZ95WxByFXVkDxHXrqu53WCRGypk2ttuqncb","1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
-        test_first_address("yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF","37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
-        test_first_address("zprvAdG4iTXWBoARxkkzNpNh8r6Qag3irQB8PzEMkAFeTRXxHpbF9z4QgEvBRmfvqWvGp42t42nvgGpNgYSJA9iefm1yYNZKEm7z6qUWCroSQnE","bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
-    }
-
-    fn test_first_address(electrum_xprv: &str, expected_first_address: &str) {
-        let electrum_xprv = ElectrumExtendedPrivKey::from_str(electrum_xprv).unwrap();
-        let descriptors = electrum_xprv.to_descriptors();
-        let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
-            descriptors[0].parse().unwrap();
-        let first_address = descriptor
-            .derive(ChildNumber::from_normal_idx(0).unwrap())
-            .address(electrum_xprv.xprv.network)
-            .unwrap()
-            .to_string();
-        assert_eq!(expected_first_address, first_address);
+        assert_eq!(xprv.to_string(), "xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
     }
 }
