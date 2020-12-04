@@ -1,20 +1,18 @@
 use libelectrum2descriptors::{
-    electrumextendedkey::ElectrumExtendedKey, electrumextendedprivkey::ElectrumExtendedPrivKey,
-    electrumextendedpubkey::ElectrumExtendedPubKey,
+    ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey,
 };
 use std::str::FromStr;
 
 fn main() -> Result<(), String> {
     let mut args = std::env::args();
     args.next(); // first is program name
-    let electrum_x = args
-        .next()
-        .ok_or_else(|| "You must specify an electrum xpub as first argument".to_string())?;
-    let electrum_x: Box<dyn ElectrumExtendedKey> = match &electrum_x[1..4] {
-        "prv" => Box::new(ElectrumExtendedPrivKey::from_str(&electrum_x)?),
-        "pub" => Box::new(ElectrumExtendedPubKey::from_str(&electrum_x)?),
-        id => return Err(format!("Invalid identifier: {}", id)),
-    };
-    println!("{:?}", electrum_x.to_descriptors());
+    let electrum_x = args.next().ok_or_else(|| {
+        "You must specify an extended public or private key as first argument".to_string()
+    })?;
+    let descriptor = ElectrumExtendedPrivKey::from_str(&electrum_x)
+        .map(|e| e.to_descriptors())
+        .or_else(|_| ElectrumExtendedPubKey::from_str(&electrum_x).map(|e| e.to_descriptors()))?;
+
+    println!("{:?}", descriptor);
     Ok(())
 }

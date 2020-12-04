@@ -1,4 +1,5 @@
-use crate::electrumextendedkey::ElectrumExtendedKey;
+use crate::ElectrumExtendedKey;
+use bitcoin::secp256k1;
 use bitcoin::util::base58;
 use bitcoin::util::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
 use bitcoin::{Network, PrivateKey};
