@@ -93,8 +93,9 @@ fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Erro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::util::bip32::ChildNumber;
+    use bitcoin::secp256k1::Secp256k1;
     use miniscript::descriptor::DescriptorPublicKey;
+    use miniscript::{DescriptorTrait, TranslatePk2};
     use std::str::FromStr;
 
     #[test]
@@ -123,7 +124,9 @@ mod tests {
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
             descriptors[0].parse().unwrap();
         let first_address = descriptor
-            .derive(ChildNumber::from_normal_idx(0).unwrap())
+            .derive(0)
+            .translate_pk2(|xpk| xpk.derive_public_key(&Secp256k1::verification_only()))
+            .unwrap()
             .address(electrum_xpub.xpub.network)
             .unwrap()
             .to_string();
