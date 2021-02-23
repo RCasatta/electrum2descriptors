@@ -22,7 +22,7 @@ name = "electrum2descriptors"
 path = "src/bin.rs"
 
 [dependencies]
-bitcoin = "0.25.2"
+bitcoin = "0.26"
 
 [dev-dependencies]
-miniscript = "3.0.0"
+miniscript = "5"
