@@ -1,6 +1,6 @@
 [package]
 name = "electrum2descriptors"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Riccardo Casatta <riccardo@casatta.it>"]
 edition = "2018"
 description = "Converts electrum xpubs (like vpub, ypub...) into output descriptors"
@@ -22,7 +22,7 @@ name = "electrum2descriptors"
 path = "src/bin.rs"
 
 [dependencies]
-bitcoin = "0.26"
+bitcoin = "0.27"
 
 [dev-dependencies]
-miniscript = "5"
+miniscript = "6"

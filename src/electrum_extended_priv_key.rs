@@ -90,7 +90,7 @@ fn match_electrum_xprv(version: &[u8]) -> Result<(Network, String), base58::Erro
         [0x02u8, 0x95, 0xb0, 0x05] => Ok((Network::Bitcoin, "sh(wsh".to_string())), // Yprv
         [0x04u8, 0xb2, 0x43, 0x0c] => Ok((Network::Bitcoin, "wpkh".to_string())), // zprv
         [0x02u8, 0xaa, 0x7a, 0x99] => Ok((Network::Bitcoin, "wsh".to_string())), // Zprv
-        _ => Err(base58::Error::InvalidVersion(version.to_vec())),
+        _ => Err(base58::Error::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())),
     }
 }
 
