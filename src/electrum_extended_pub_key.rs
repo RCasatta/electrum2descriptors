@@ -10,6 +10,81 @@ pub struct ElectrumExtendedPubKey {
     kind: String,
 }
 
+type SentinelMap = Vec<([u8; 4], Network, String)>;
+fn initialize_sentinels() -> SentinelMap {
+    // electrum testnet
+    // https://github.com/spesmilo/electrum/blob/928e43fc530ba5befa062db788e4e04d56324161/electrum/constants.py#L118-L124
+    //     XPUB_HEADERS = {
+    //         'standard':    0x043587cf,  # tpub
+    //         'p2wpkh-p2sh': 0x044a5262,  # upub
+    //         'p2wsh-p2sh':  0x024289ef,  # Upub
+    //         'p2wpkh':      0x045f1cf6,  # vpub
+    //         'p2wsh':       0x02575483,  # Vpub
+    //     }
+    // electrum mainnet
+    // https://github.com/spesmilo/electrum/blob/928e43fc530ba5befa062db788e4e04d56324161/electrum/constants.py#L82-L88
+    //     XPUB_HEADERS = {
+    //         'standard':    0x0488b21e,  # xpub
+    //         'p2wpkh-p2sh': 0x049d7cb2,  # ypub
+    //         'p2wsh-p2sh':  0x0295b43f,  # Ypub
+    //         'p2wpkh':      0x04b24746,  # zpub
+    //         'p2wsh':       0x02aa7ed3,  # Zpub
+    //     }
+
+    vec![
+        (
+            [0x04u8, 0x35, 0x87, 0xcf],
+            Network::Testnet,
+            "pkh".to_string(),
+        ), // tpub
+        (
+            [0x04u8, 0x4a, 0x52, 0x62],
+            Network::Testnet,
+            "sh(wpkh".to_string(),
+        ), // upub
+        (
+            [0x02u8, 0x42, 0x89, 0xef],
+            Network::Testnet,
+            "sh(wsh".to_string(),
+        ), // Upub
+        (
+            [0x04u8, 0x5f, 0x1c, 0xf6],
+            Network::Testnet,
+            "wpkh".to_string(),
+        ), // vpub
+        (
+            [0x02u8, 0x57, 0x54, 0x83],
+            Network::Testnet,
+            "wsh".to_string(),
+        ), // Vpub
+        (
+            [0x04u8, 0x88, 0xB2, 0x1E],
+            Network::Bitcoin,
+            "pkh".to_string(),
+        ), // xpub
+        (
+            [0x04u8, 0x9d, 0x7c, 0xb2],
+            Network::Bitcoin,
+            "sh(wpkh".to_string(),
+        ), // ypub
+        (
+            [0x02u8, 0x95, 0xb4, 0x3f],
+            Network::Bitcoin,
+            "sh(wsh".to_string(),
+        ), // Ypub
+        (
+            [0x04u8, 0xb2, 0x47, 0x46],
+            Network::Bitcoin,
+            "wpkh".to_string(),
+        ), // zpub
+        (
+            [0x02u8, 0xaa, 0x7e, 0xd3],
+            Network::Bitcoin,
+            "wsh".to_string(),
+        ), // Zpub
+    ]
+}
+
 impl FromStr for ElectrumExtendedPubKey {
     type Err = String;
 
@@ -30,8 +105,7 @@ impl FromStr for ElectrumExtendedPubKey {
             parent_fingerprint: Fingerprint::from(&data[5..9]),
             child_number,
             chain_code: ChainCode::from(&data[13..45]),
-            public_key: PublicKey::from_slice(&data[45..78])
-                .map_err(|e| e.to_string())?,
+            public_key: PublicKey::from_slice(&data[45..78]).map_err(|e| e.to_string())?,
         };
         Ok(ElectrumExtendedPubKey { xpub, kind })
     }
@@ -49,44 +123,48 @@ impl ElectrumExtendedKey for ElectrumExtendedPubKey {
 }
 
 impl ElectrumExtendedPubKey {
+    /// Constructs a new instance
+    pub fn new(xpub: ExtendedPubKey, kind: String) -> Self {
+        ElectrumExtendedPubKey { xpub, kind }
+    }
+
     /// Returns the xpub
     pub fn xpub(&self) -> &ExtendedPubKey {
         &self.xpub
     }
+
+    /// converts to electrum format
+    pub fn electrum_xpub(&self) -> Result<String, String> {
+        let sentinels = initialize_sentinels();
+        let sentinel = sentinels
+            .iter()
+            .find(|sent| sent.1 == self.xpub.network && sent.2 == self.kind)
+            .ok_or_else(|| "unknown type".to_string())?;
+        let mut data = Vec::from(&sentinel.0[..]);
+        data.push(self.xpub.depth);
+        data.extend(self.xpub.parent_fingerprint.as_bytes());
+        let child_number: u32 = self.xpub.child_number.into();
+        data.extend(child_number.to_be_bytes());
+        data.extend(self.xpub.chain_code.as_bytes());
+        data.extend(&self.xpub.public_key.to_bytes());
+
+        if data.len() != 78 {
+            return Err(base58::Error::InvalidLength(data.len()).to_string());
+        }
+
+        Ok(base58::check_encode_slice(&data))
+    }
 }
 
 fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Error> {
-    // electrum testnet
-    // https://github.com/spesmilo/electrum/blob/928e43fc530ba5befa062db788e4e04d56324161/electrum/constants.py#L118-L124
-    //     XPUB_HEADERS = {
-    //         'standard':    0x043587cf,  # tpub
-    //         'p2wpkh-p2sh': 0x044a5262,  # upub
-    //         'p2wsh-p2sh':  0x024289ef,  # Upub
-    //         'p2wpkh':      0x045f1cf6,  # vpub
-    //         'p2wsh':       0x02575483,  # Vpub
-    //     }
-    // electrum mainnet
-    // https://github.com/spesmilo/electrum/blob/928e43fc530ba5befa062db788e4e04d56324161/electrum/constants.py#L82-L88
-    //     XPUB_HEADERS = {
-    //         'standard':    0x0488b21e,  # xpub
-    //         'p2wpkh-p2sh': 0x049d7cb2,  # ypub
-    //         'p2wsh-p2sh':  0x0295b43f,  # Ypub
-    //         'p2wpkh':      0x04b24746,  # zpub
-    //         'p2wsh':       0x02aa7ed3,  # Zpub
-    //     }
-    match version {
-        [0x04u8, 0x35, 0x87, 0xcf] => Ok((Network::Testnet, "pkh".to_string())), // tpub
-        [0x04u8, 0x4a, 0x52, 0x62] => Ok((Network::Testnet, "sh(wpkh".to_string())), // upub
-        [0x02u8, 0x42, 0x89, 0xef] => Ok((Network::Testnet, "sh(wsh".to_string())), // Upub
-        [0x04u8, 0x5f, 0x1c, 0xf6] => Ok((Network::Testnet, "wpkh".to_string())), // vpub
-        [0x02u8, 0x57, 0x54, 0x83] => Ok((Network::Testnet, "wsh".to_string())), // Vpub
-        [0x04u8, 0x88, 0xB2, 0x1E] => Ok((Network::Bitcoin, "pkh".to_string())), // xpub
-        [0x04u8, 0x9d, 0x7c, 0xb2] => Ok((Network::Bitcoin, "sh(wpkh".to_string())), // ypub
-        [0x02u8, 0x95, 0xb4, 0x3f] => Ok((Network::Bitcoin, "sh(wsh".to_string())), // Ypub
-        [0x04u8, 0xb2, 0x47, 0x46] => Ok((Network::Bitcoin, "wpkh".to_string())), // zpub
-        [0x02u8, 0xaa, 0x7e, 0xd3] => Ok((Network::Bitcoin, "wsh".to_string())), // Zpub
-        _ => Err(base58::Error::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())),
-    }
+    let sentinels = initialize_sentinels();
+    let sentinel = sentinels
+        .iter()
+        .find(|sent| sent.0 == version)
+        .ok_or_else(|| {
+            base58::Error::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())
+        })?;
+    Ok((sentinel.1, sentinel.2.clone()))
 }
 
 #[cfg(test)]
@@ -98,7 +176,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn test_vpub() {
+    fn test_vpub_from_electrum() {
         let electrum_xpub = ElectrumExtendedPubKey::from_str("vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv").unwrap();
         assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
         assert_eq!(electrum_xpub.kind, "wpkh");
@@ -107,6 +185,25 @@ mod tests {
         assert_eq!(descriptors[1], "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
         let xpub = electrum_xpub.xpub();
         assert_eq!(xpub.to_string(), "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
+    }
+
+    #[test]
+    fn test_vpub_to_electrum() {
+        let electrum_xpub = ElectrumExtendedPubKey::new(
+            ExtendedPubKey::from_str("tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp").unwrap(), 
+            "wpkh".to_string(),
+        );
+        assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
+        assert_eq!(electrum_xpub.kind, "wpkh");
+        assert_eq!(electrum_xpub.electrum_xpub().unwrap(), "vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv");
+    }
+
+    #[test]
+    fn test_vpub_roundtrip() {
+        let elxpub = "vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv";
+        let electrum_xpub = ElectrumExtendedPubKey::from_str(elxpub).unwrap();
+        assert_eq!(electrum_xpub.electrum_xpub().unwrap(), elxpub);
+        assert_ne!(elxpub, electrum_xpub.xpub.to_string());
     }
 
     #[test]
