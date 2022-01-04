@@ -118,6 +118,16 @@ impl FromStr for ElectrumExtendedPrivKey {
 }
 
 impl ElectrumExtendedKey for ElectrumExtendedPrivKey {
+    /// Returns the kind
+    fn kind(&self) -> &str {
+        &self.kind
+    }
+
+    /// Returns the xprv as String
+    fn xkeystr(&self) -> String {
+        self.xprv.to_string()
+    }
+
     /// Returns internal and external descriptor
     fn to_descriptors(&self) -> Vec<String> {
         let xprv = self.xprv.to_string();

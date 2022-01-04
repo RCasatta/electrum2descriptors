@@ -112,6 +112,16 @@ impl FromStr for ElectrumExtendedPubKey {
 }
 
 impl ElectrumExtendedKey for ElectrumExtendedPubKey {
+    /// Returns the kind
+    fn kind(&self) -> &str {
+        &self.kind
+    }
+
+    /// Returns the xpub as String
+    fn xkeystr(&self) -> String {
+        self.xpub.to_string()
+    }
+
     /// Returns internal and external descriptor
     fn to_descriptors(&self) -> Vec<String> {
         let xpub = self.xpub.to_string();

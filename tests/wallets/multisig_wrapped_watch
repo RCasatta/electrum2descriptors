@@ -1,0 +1,133 @@
+{
+    "addr_history": { },
+    "addresses": {
+        "change": [
+            "2Mz7yo9W6wyBLfiKCXwZeg2sio1UMj9j624",
+            "2Mx9kNoesax7NsNXNF68Udgmcf8yVbp81pz",
+            "2ND6DmPJQQ21iwuVYpG3tCGrXXKrvK73dUB",
+            "2Mwkqy6Lt62dLPyTuBMdHJR4gC1rwV5F5QK",
+            "2NBDdgYcE3sJAyYggVtTSSeq2Vm52ZBtARa",
+            "2N69Nht2Rtcen6VpGFLEV1v9Q4emsD2G2zd",
+            "2N9rdfLRVpvmpLzFgLjSHk1CFbnzkhcxtWb",
+            "2MxcziECWdpHoZyx6mjRR179HEEso142wcq",
+            "2MwZHeUHp4WhAfQ7TtwEuRY9qjpwVTFYGZ5",
+            "2N1zStXEUmdN5E2F9zjCgcLko4Tf6f4HBfy",
+            "2NCe3jpXxAkaozerBXQWPV79ZqsUHTML751",
+            "2MxoJ5Hi7GbTtaXwF9xPmttjvgGcPWP2cAG",
+            "2NFddKeHiBf6DBh1JiPTnuwTnYRZfdyahpJ",
+            "2NAdFW3oSUE9XaGymwXhwuPXQtaEyP8Bfvi",
+            "2NCESXSYtnYsqgH6VcuQRBirwvcaWqeg1yC",
+            "2NCitx7KukLjTfdrjCoiaD1EwZ7ecj5tvbz",
+            "2NEPVvYoEdvHygZWskqVeMBT436LiTwLLSa",
+            "2N9zrbQUBW861aiJ3RZnwyEX8YwkgRMvhWd",
+            "2NC2vDp9pDATrEuMij7u2Hr7NZxVhgrzr2V",
+            "2NCXGC3HQhc8Dp6FSxnAVGwSuRHVv5HE3AB",
+            "2Mvvx8GUBMuXTbjFpnr61TiVnG8t9sR8znk",
+            "2MyumsSnmeVWmye1MqxPGXq2mAdtXz8TAaB"
+        ],
+        "receiving": [
+            "2Mtkk3kjyN8hgdGXPuJCNnwS3BBY4K2frhY",
+            "2NEua1ZffPXrPuDnKJv8SaepBi6d9VR5Shu",
+            "2N7R9gs3ELT6ZvTQRg8atcf3qW6EYREBLty",
+            "2NBknD44Y8rsnZBBU33UMDLjn5pdMrs6TEP",
+            "2NEPDS2RsiisUcUeghiRkFaRSe3z86VXojz",
+            "2NGUTARfPZSySMp9e5CDTamk2SFSUHTxjp9",
+            "2NFeYgjnFNUAQ1G1MTaaH327jjWzhYNowzM",
+            "2N8DGRzUjnZKKWLx2oC1wVyu9s2ARqaSYJS",
+            "2N5CvKw2D2SCJkQvSyotuNnAsr3kZy3Ydxy",
+            "2MycZTRACxt14w5KSBxWoCZQVMmuguEtr3f",
+            "2N3tKoojjSVEepmarTGo6Yim9UeESoiDZBG",
+            "2N4ssm6Vf2mkWpqT6k9uCtqHt8M3iAS1Yme",
+            "2NBXY7x81nsvTySkfURUA1YyoiAJv1uP9AD",
+            "2N2g397tjB2Uq6gGba4jCoJ7pZ9WexxGABE",
+            "2MuES2UKKzB1wuooRSJBfzo81N4eQd6AnTm",
+            "2MueQ2MrfrepxFH1ByxtqUSpmWDzrjTe2HQ",
+            "2MxowtnedZ2eb2Z9ytaQK6rQKt95vyZS5kV",
+            "2NDSmLunv1UWYVhABphGFFgePKAsxrL5b7n",
+            "2NF8PfgiXrpnxDmVxxsJMiQehscNZCfCtaf",
+            "2N7WnuQg4MXW6Nbe7a8uKk5b4xKHqoMeZrV",
+            "2NDQTYzLgUn1ayHsLsFHbmG58SkfoBse3pe"
+        ]
+    },
+    "channel_backups": {},
+    "channels": {},
+    "fiat_value": {},
+    "invoices": {},
+    "labels": {},
+    "payment_requests": {},
+    "prevouts_by_scripthash": {},
+    "qt-console-history": [],
+    "seed_version": 33,
+    "spent_outpoints": {},
+    "stored_height": 2134584,
+    "transactions": {},
+    "tx_fees": {},
+    "txi": {},
+    "txo": {},
+    "use_change": true,
+    "use_encryption": false,
+    "verified_tx3": {},
+    "wallet_type": "3of7",
+    "winpos-qt": [
+        2015,
+        351,
+        840,
+        468
+    ],
+    "x1/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5SuW82zTTrULvC2KTgFqADind2gonSSvB345ALrdtXx8pN94auhnxditBo7HLUPJV5SAfaofHhgBaet5eXgaSxmpVoVeSmhWorgEEL1ipzY"
+    },
+    "x2/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5T5HWwZsXJLQ8RJyPzviXn4fF7bv73kV3Rc3jRJ5mU1iphzrcJQ4kZ98jWx1PebwDPrNhBF5sAWHw9qVEt5HSFHmiNxG5PmCbQif9Lk4q8Z"
+    },
+    "x3/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5S371fWWWjS4d3ZcuUiRWFdNVJsS2v3NK79g9XacG4UpV59v9PdhHXcr9gKCNvGG59bHMo1oM83hZefgBCidGizUPhcZ3BHUDtBttrWwm7r"
+    },
+    "x4/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5TNGnoRwiQgEe8fSyvsgJGBcu6EACeFYj5G89RhUFYA1GCS2iHofv6yHTafh4sCFGTFx6tW2naMAcYivQdQZEqffzeVQCheKFL7aH1V2paZ"
+    },
+    "x5/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5SXsqN5ev23dZRAopqVu4PGZmDnCzwBR9ovrJYiejfMX5AE35bxM5YrP2gZP7nRqdezy7D6TXHABrdhWtKm4rzPMMn2VJUuGH5Dgyq6KNGP"
+    },
+    "x6/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5SKeFkex2kf375rrQJfR95nhr1XxkLz1KAfuRHscm7ngZ5RAPFjVtBTmQHVQTxy3gXxJfQ1FiZyafms4nQKcSBLRu26pLfRT22msHAKbfcJ"
+    },
+    "x7/": {
+        "derivation": null,
+        "pw_hash_version": 1,
+        "root_fingerprint": null,
+        "type": "bip32",
+        "xprv": null,
+        "xpub": "Upub5Ss1Vu6fAakq5PmE7VsyGsvywbzx467sKHTCCLtycFpx9Nw5JWgYCafztN95i3jPEZcQaKEji225EMVStQQsjxxBxbcv5cSd88vXA1ruU9o"
+    }
+}
