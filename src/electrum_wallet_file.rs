@@ -101,16 +101,9 @@ fn get_wallet_type(wallet_type: &str) -> Result<WalletType, String> {
             .map(|c| c.as_str())
             .collect::<Vec<_>>()
     });
-    let wallet_type = match captures.as_deref() {
-        Some(["standard"]) => WalletType::Standard,
-        Some([x, "of", y]) => WalletType::Multisig(
-            x.parse()
-                .map_err(|e| format!("cannot parse number: {}", e))?,
-            y.parse()
-                .map_err(|e| format!("cannot parse number: {}", e))?,
-        ),
-        _ => return Err(format!("Unknown wallet type: {}", wallet_type)),
-    };
-
-    Ok(wallet_type)
+    match captures.as_deref() {
+        Some(["standard"]) => Ok(WalletType::Standard),
+        Some([x, "of", y]) => Ok(WalletType::Multisig(x.parse().unwrap(), y.parse().unwrap())),
+        _ => Err(format!("Unknown wallet type: {}", wallet_type)),
+    }
 }
