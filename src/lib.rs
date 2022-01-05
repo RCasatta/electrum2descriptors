@@ -1,5 +1,6 @@
 pub mod electrum_extended_priv_key;
 pub mod electrum_extended_pub_key;
+#[cfg(feature = "wallet_file")]
 pub mod electrum_wallet_file;
 
 pub use electrum_extended_priv_key::ElectrumExtendedPrivKey;

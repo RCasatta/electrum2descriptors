@@ -1,6 +1,7 @@
-use libelectrum2descriptors::{
-    electrum_wallet_file::*, ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey,
-};
+use libelectrum2descriptors::{ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey};
+#[cfg(feature = "wallet_file")]
+use libelectrum2descriptors::electrum_wallet_file::{electrum_wallet_to_descriptors, get_json_from_wallet_file};
+#[cfg(feature = "wallet_file")]
 use std::path::Path;
 use std::str::FromStr;
 
@@ -12,7 +13,9 @@ fn main() -> Result<(), String> {
     let electrum_x = args.next().ok_or_else(|| err_msg.clone())?;
     let descriptor = ElectrumExtendedPrivKey::from_str(&electrum_x)
         .map(|e| e.to_descriptors())
-        .or_else(|_| ElectrumExtendedPubKey::from_str(&electrum_x).map(|e| e.to_descriptors()))
+        .or_else(|_| ElectrumExtendedPubKey::from_str(&electrum_x).map(|e| e.to_descriptors()));
+#[cfg(feature = "wallet_file")]
+    let descriptor = descriptor
         .or_else(|_| {
             let wallet_file = Path::new(&electrum_x)
                 .canonicalize()
@@ -22,8 +25,8 @@ fn main() -> Result<(), String> {
             }
             let json = get_json_from_wallet_file(wallet_file.as_path())?;
             electrum_wallet_to_descriptors(json)
-        })?;
+        });
 
-    println!("{:?}", descriptor);
+    println!("{:?}", descriptor?);
     Ok(())
 }

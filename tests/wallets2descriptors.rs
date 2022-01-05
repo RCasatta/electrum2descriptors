@@ -1,8 +1,13 @@
+#[cfg(feature = "wallet_file")]
 use bdk::{bitcoin::Network, database::MemoryDatabase, wallet::AddressIndex, Wallet};
-use libelectrum2descriptors::electrum_wallet_file::*;
+#[cfg(feature = "wallet_file")]
+use libelectrum2descriptors::electrum_wallet_file::{electrum_wallet_to_descriptors, get_json_from_wallet_file};
+#[cfg(feature = "wallet_file")]
 use rstest::rstest;
+#[cfg(feature = "wallet_file")]
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "wallet_file")]
 #[rstest]
 #[case("default_legacy", 
     "pkh(tprv8ZgxMBicQKsPeYnCHtn5QZqhTgkkDmXebfQMXWmX7ThXJFCbzDTKFNRsB43GUmHzu2pdGcnnegFy175kFcgZQYC5BFPnRdYDPQyqetpyjb5/0/*)",
@@ -37,12 +42,14 @@ fn test_wallet(
     assert_eq!(addr, exp);
 }
 
+#[cfg(feature = "wallet_file")]
 fn wallet_name_to_descriptors(wallet_name: &str) -> Vec<String> {
     let wallet_file = get_test_wallet_file(wallet_name);
     let json = get_json_from_wallet_file(wallet_file.as_path()).unwrap();
     electrum_wallet_to_descriptors(json).unwrap()
 }
 
+#[cfg(feature = "wallet_file")]
 fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
     let test_dir = Path::new(file!()).canonicalize().unwrap();
     let test_dir = test_dir.as_path().parent().unwrap();
@@ -55,11 +62,13 @@ fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
     wallet_file.to_path_buf()
 }
 
+#[cfg(feature = "wallet_file")]
 fn first_address_from_descriptor(desc: &str, network: Network) -> String {
     let wallet = Wallet::new_offline(desc, None, network, MemoryDatabase::default()).unwrap();
     wallet.get_address(AddressIndex::New).unwrap().to_string()
 }
 
+#[cfg(feature = "wallet_file")]
 fn first_address_from_wallet_file(wallet_name: &str) -> String {
     let wallet_file = get_test_wallet_file(wallet_name);
     let json = get_json_from_wallet_file(wallet_file.as_path()).unwrap();

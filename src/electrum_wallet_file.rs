@@ -57,7 +57,7 @@ pub fn electrum_wallet_to_descriptors(json: serde_json::Value) -> Result<Vec<Str
     }
 }
 
-pub fn get_xkey_from_keystore(
+fn get_xkey_from_keystore(
     keystore: &serde_json::Value,
 ) -> Result<Box<dyn ElectrumExtendedKey>, String> {
     if let Some(xprv) = keystore.get("xprv") {
