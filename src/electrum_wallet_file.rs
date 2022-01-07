@@ -1,12 +1,11 @@
 use crate::{ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey};
+use bitcoin::util::bip32::{ExtendedPrivKey, ExtendedPubKey};
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
-use std::fmt;
-use std::path::Path;
-use std::str::FromStr;
+use std::{fmt, path::Path, str::FromStr, string::ToString};
 
 /// Representation of an electrum wallet file
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ElectrumWalletFile {
     pub addresses: Addresses,
     pub keystore: Option<Keystore>,
@@ -28,14 +27,14 @@ pub struct ElectrumWalletFile {
 }
 
 /// Representation of the addresses section of an electrum wallet file
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Addresses {
     pub change: Vec<String>,
     pub receiving: Vec<String>,
 }
 
 /// Representation of a keystore section of an electrum wallet file. Can be single sig "keystore" or multisig "x1/" "x2/" ...
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Keystore {
     #[serde(default = "Keystore::default_type")]
     pub r#type: String,
@@ -44,7 +43,7 @@ pub struct Keystore {
 }
 
 /// Representation of the wallet_type section of an electrum wallet file
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WalletType {
     Standard,
     Multisig(u8, u8),
@@ -62,6 +61,122 @@ impl ElectrumWalletFile {
     pub fn to_file(&self, wallet_file: &Path) -> Result<(), String> {
         let file = std::fs::File::create(wallet_file).map_err(|e| e.to_string())?;
         serde_json::to_writer_pretty(file, self).map_err(|e| e.to_string())
+    }
+
+    /// Convert from an output descriptor. Only the external descriptor is needed, the change descriptor is implied.
+    pub fn from_descriptor(desc: &str) -> Result<Self, String> {
+        if desc.contains("sortedmulti") {
+            ElectrumWalletFile::from_descriptor_multisig(desc)
+        } else {
+            ElectrumWalletFile::from_descriptor_singlesig(desc)
+        }
+    }
+
+    fn from_descriptor_singlesig(desc: &str) -> Result<Self, String> {
+        let re =
+            Regex::new(r#"(pkh|sh\(wpkh|sh\(wsh|wpkh|wsh)\((([tx]p(ub|rv)[0-9A-Za-z]+)/0/\*)\)+"#)
+                .map_err(|e| e.to_string())?;
+        let captures = re.captures(desc).map(|captures| {
+            captures
+                .iter()
+                .skip(1)
+                .take(3)
+                .flatten()
+                .map(|c| c.as_str())
+                .collect::<Vec<_>>()
+        });
+        let keystore = match captures.as_deref() {
+            Some([kind, _, xkey]) => Keystore::new(kind, xkey)?,
+            _ => return Err(format!("Unknown descriptor format: {:?}", captures)),
+        };
+
+        let wallet = ElectrumWalletFile {
+            addresses: Addresses::new(),
+            keystore: Some(keystore),
+            wallet_type: WalletType::Standard,
+            x1: None,
+            x2: None,
+            x3: None,
+            x4: None,
+            x5: None,
+            x6: None,
+            x7: None,
+        };
+        Ok(wallet)
+    }
+
+    fn from_descriptor_multisig(desc: &str) -> Result<Self, String> {
+        let re = Regex::new(
+            r#"(sh|sh\(wsh|wsh)\(sortedmulti\((\d),([tx]p(ub|rv)[0-9A-Za-z]+/0/\*,?)+\)+"#,
+        )
+        .map_err(|e| e.to_string())?;
+        let captures = re.captures(desc).map(|captures| {
+            captures
+                .iter()
+                .skip(1)
+                .take(2)
+                .flatten()
+                .map(|c| c.as_str())
+                .collect::<Vec<_>>()
+        });
+        if let Some([kind, x]) = captures.as_deref() {
+            let kind = match *kind {
+                "wsh" => "wsh",
+                "sh" => "pkh",
+                "sh(wsh" => "sh(wsh",
+                _ => return Err(format!("unknown nultisig kind: {}", kind)),
+            };
+            let re = Regex::new(r#"[tx]p[ur][bv][0-9A-Za-z]+"#).map_err(|e| e.to_string())?;
+            let keystores = re
+                .captures_iter(desc)
+                .map(|cap| Keystore::new(kind, &cap[0]))
+                .collect::<Result<Vec<Keystore>, _>>()?;
+            let y = keystores.len();
+            if y < 2 {
+                return Err(
+                    "Multisig with less than two signers doesn't make a lot of sense".to_string(),
+                );
+            }
+
+            let wallet = ElectrumWalletFile {
+                addresses: Addresses::new(),
+                keystore: None,
+                wallet_type: WalletType::Multisig(x.parse().unwrap(), y as u8),
+                x1: Some(keystores[0].clone()),
+                x2: Some(keystores[1].clone()),
+                x3: if y >= 3 {
+                    Some(keystores[2].clone())
+                } else {
+                    None
+                },
+                x4: if y >= 4 {
+                    Some(keystores[3].clone())
+                } else {
+                    None
+                },
+                x5: if y >= 5 {
+                    Some(keystores[4].clone())
+                } else {
+                    None
+                },
+                x6: if y >= 6 {
+                    Some(keystores[5].clone())
+                } else {
+                    None
+                },
+                x7: if y >= 7 {
+                    Some(keystores[6].clone())
+                } else {
+                    None
+                },
+            };
+            Ok(wallet)
+        } else {
+            Err(format!(
+                "Unknown multisig descriptor format: {:?}",
+                captures
+            ))
+        }
     }
 
     /// Generate output descriptors matching the electrum wallet
@@ -120,7 +235,46 @@ impl ElectrumWalletFile {
     }
 }
 
+impl Addresses {
+    fn new() -> Self {
+        Addresses {
+            change: Vec::new(),
+            receiving: Vec::new(),
+        }
+    }
+}
+
 impl Keystore {
+    /// Construct a Keystore from script kind and xpub or xprv
+    fn new(kind: &str, xkey: &str) -> Result<Self, String> {
+        let xprv = ExtendedPrivKey::from_str(xkey);
+        let exprv = if let Ok(xprv) = xprv {
+            Some(ElectrumExtendedPrivKey::new(xprv, kind.to_string()).electrum_xprv()?)
+        } else {
+            None
+        };
+
+        let expub = if let Ok(xprv) = xprv {
+            let secp = bitcoin::secp256k1::Secp256k1::new();
+            ElectrumExtendedPubKey::new(
+                ExtendedPubKey::from_private(&secp, &xprv),
+                kind.to_string(),
+            )
+        } else {
+            ElectrumExtendedPubKey::new(
+                ExtendedPubKey::from_str(xkey).map_err(|e| e.to_string())?,
+                kind.to_string(),
+            )
+        }
+        .electrum_xpub()?;
+
+        Ok(Keystore {
+            r#type: Keystore::default_type(),
+            xprv: exprv,
+            xpub: expub,
+        })
+    }
+
     /// Get the xprv if available or else the xpub.
     fn get_xkey(&self) -> Result<Box<dyn ElectrumExtendedKey>, String> {
         if let Some(xprv) = &self.xprv {
