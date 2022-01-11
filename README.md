@@ -4,7 +4,15 @@
 
 Converts [slip-0132](https://github.com/satoshilabs/slips/blob/master/slip-0132.md) extended keys (like the vpub, ypub, yprv, etc. used by Electrum) into [output descriptors](https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md)
 
-## Usage
+This project consists of a library and an executable. 
+
+The work of @ulrichard in this project was sponsored by [SEBA Bank AG](https://seba.swiss)
+
+## Usage library
+For the library interface read [the docs](https://docs.rs/electrum2descriptors/latest/libelectrum2descriptors/).
+With the library, you can also convert from descriptor to slip-0132 and to electrum wallet files.
+
+## Usage binary
 
 ```
 $ cargo install electrum2descriptors

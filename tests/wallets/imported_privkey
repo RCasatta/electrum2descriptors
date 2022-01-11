@@ -1,0 +1,46 @@
+{
+    "addr_history": {},
+    "addresses": {
+        "tb1q7prnnyhzhv4ayussk65zh9f5796d3qysp35mv9": {
+            "pubkey": "033087391825f0ae207fdc8c9cf17c10c37300b52af728ab2efb274aac45f561af",
+            "type": "p2wpkh"
+        },
+        "tb1qnlyqzt2nrq6rejy6ldwuu6qn72exxvvfvrdtph": {
+            "pubkey": "025a52c10e9b6157e66487ed4c5affa324157d870923a57caa8dee673269a63d2d",
+            "type": "p2wpkh"
+        },
+        "tb1qt63km8fkfuwnl6hzfktu7g2nh8tc6jhr6vequq": {
+            "pubkey": "0306ecf470a5c8e436187db466e5b84b28267f1b269906e70ef3ba5d134339c689",
+            "type": "p2wpkh"
+        },
+        "tb1qys5xz7kju4k86wau7rusgjqgtf08nxe57hus7c": {
+            "pubkey": "03bf483d038037dbaabf3ecb94a10e725de34c8e64676da562a612d35828eb4252",
+            "type": "p2wpkh"
+        }
+    },
+    "channel_backups": {},
+    "fiat_value": {},
+    "invoices": {},
+    "keystore": {
+        "keypairs": {
+            "025a52c10e9b6157e66487ed4c5affa324157d870923a57caa8dee673269a63d2d": "cXdYHE11WxYPUfNiCaLrySytAbhpLPvxN9zJEHfypTkmR1qEkiYg",
+            "0306ecf470a5c8e436187db466e5b84b28267f1b269906e70ef3ba5d134339c689": "cee8Lz4767oSuhBTMuaLsjjN6CiqLyke2rkpwqVMcGXw8T2fhzo7",
+            "033087391825f0ae207fdc8c9cf17c10c37300b52af728ab2efb274aac45f561af": "cZZuMP57XLeLyMtfEBsqVhY7scBcVNW929unVH7WHVheMY25woDp",
+            "03bf483d038037dbaabf3ecb94a10e725de34c8e64676da562a612d35828eb4252": "cZQzRwivLg3xBSGy75LmNAmCgquBBPouH5zq3z8Z69iNqpCo5hTQ"
+        },
+        "pw_hash_version": 1,
+        "type": "imported"
+    },
+    "labels": {},
+    "payment_requests": {},
+    "prevouts_by_scripthash": {},
+    "seed_version": 33,
+    "spent_outpoints": {},
+    "transactions": {},
+    "tx_fees": {},
+    "txi": {},
+    "txo": {},
+    "use_encryption": false,
+    "verified_tx3": {},
+    "wallet_type": "imported"
+}

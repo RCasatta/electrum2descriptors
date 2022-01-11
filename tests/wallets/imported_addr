@@ -1,0 +1,31 @@
+{
+    "addr_history": {},
+    "addresses": {
+        "tb1q6x5sfksrqg20668q0vj3phfjkrqkzx62ke3mutflxhsca4gjc48qgeusmx": {},
+        "tb1q885t7wwtky4djyahs4vscqdgelq4z9yfky9es5fexehh86pzdhws2hhz0x": {},
+        "tb1q8mrzmsay59eln9pdvfvae7mevwfxme7v86s9y7q5vgqx5aajwrzsjylq6v": {},
+        "tb1q9a4yc2vwep2xefphhedevxz4uj0x5mjj0y0p72cta8eytlghg0lsk9ajf8": {},
+        "tb1qazjtd5kxjztpqslt25y3h2nz3pm49yh8jjax6teav4ct7ptjtypssex05e": {},
+        "tb1ql0h4d90l8wxfuccv008cl37458e8alfrn35x53rgkqzzg0f672fqms35mw": {},
+        "tb1qltttpv04grw8e255w8ksuypn5ak45xvn8zt45xwtmj6ttymyx47sdc3h6q": {},
+        "tb1qna8sx3r037vv24yplumshj8qs6c4aps3pqltr0v6c0p2mhwgmmysm5fz2z": {},
+        "tb1qver6atmpu2q8nrfr53ywtxlnp3va9w2r3fqw5lha6n4t00hwk7wqwwyphd": {},
+        "tb1qxna4v45xnf0j76z7cuetlpx3qdzuk2333f3anm9qymmj6u6w9drq4zzqm2": {},
+        "tb1qywdkvysahamjzl9pa0wlssmpplyhm2cqasqznhk7pz4x58sh3x7s7yfkea": {}
+    },
+    "channel_backups": {},
+    "fiat_value": {},
+    "invoices": {},
+    "labels": {},
+    "payment_requests": {},
+    "prevouts_by_scripthash": {},
+    "seed_version": 33,
+    "spent_outpoints": {},
+    "transactions": {},
+    "tx_fees": {},
+    "txi": {},
+    "txo": {},
+    "use_encryption": false,
+    "verified_tx3": {},
+    "wallet_type": "imported"
+}

@@ -77,6 +77,17 @@ fn first_address_from_wallet_file(wallet_name: &str) -> String {
     wallet.addresses.receiving[0].clone()
 }
 
+/// Since converting a wallet with imported keys or addresses can't be converted to a descriptor anyway, we just leave a not so descriptive error message due to a different json format of such wallets.
+#[cfg(feature = "wallet_file")]
+#[rstest]
+#[case::imported_addr("imported_addr")]
+#[case::imported_privkey("imported_privkey")]
+#[should_panic(expected = "missing field `change`")]
+fn parse_imported(#[case] wallet_name: &str) {
+    let wallet_file = get_test_wallet_file(wallet_name);
+    let _wallet = ElectrumWalletFile::from_file(wallet_file.as_path()).unwrap();
+}
+
 #[cfg(feature = "wallet_file")]
 #[rstest]
 #[case::default_legacy("default_legacy", 
@@ -100,13 +111,6 @@ fn descriptor_electrum_wallet_roundtrip(#[case] wallet_name: &str, #[case] descr
     let filename = tempdir.path().join(wallet_name);
     wallet.to_file(&filename).unwrap();
     // Testing that electrum can load the files was done manually.
-
-    //////
-    let test_dir = Path::new(file!()).canonicalize().unwrap();
-    let test_dir = test_dir.as_path().parent().unwrap();
-    let wallet_file = test_dir.join("wallets/".to_string() + wallet_name + "_exported");
-    wallet.to_file(&wallet_file).unwrap();
-    //////
 
     let imported = ElectrumWalletFile::from_file(&filename).unwrap();
     assert_eq!(wallet, imported);
