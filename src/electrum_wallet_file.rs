@@ -58,6 +58,7 @@ impl ElectrumWalletFile {
             keystores: vec![keystore],
             wallet_type: WalletType::Standard,
         };
+        wallet.validate()?;
         Ok(wallet)
     }
 
@@ -99,6 +100,7 @@ impl ElectrumWalletFile {
                 keystores,
                 wallet_type: WalletType::Multisig(x.parse().unwrap(), y as u8),
             };
+            wallet.validate()?;
             Ok(wallet)
         } else {
             Err(format!(
@@ -145,6 +147,24 @@ impl ElectrumWalletFile {
             }
         }
     }
+
+    /// validate the internal structure
+    fn validate(&self) -> Result<(), String> {
+        let expected_keystores: usize = match self.wallet_type {
+            WalletType::Standard => 1,
+            WalletType::Multisig(_x, y) => y.into(),
+        };
+
+        if self.keystores.len() == expected_keystores {
+            Ok(())
+        } else {
+            Err(format!(
+                "Wrong number of keystores: {}; expected: {}",
+                self.keystores.len(),
+                expected_keystores
+            ))
+        }
+    }
 }
 
 impl Serialize for ElectrumWalletFile {
@@ -184,13 +204,7 @@ impl<'de> Deserialize<'de> for ElectrumWalletFile {
             Addrs,
             Keyst,
             WalTyp,
-            AddrHistory,
-            WinPosQt,
-            IgnoreBool,
-            IgnoreString,
-            IgnoreNumber,
-            IgnoreMap,
-            IgnoreVec,
+            Ignore,
         }
 
         impl<'de> Deserialize<'de> for Field {
@@ -225,34 +239,9 @@ impl<'de> Deserialize<'de> for ElectrumWalletFile {
                         match captures.as_deref() {
                             Some(["x", _i, "/"]) => Ok(Field::Keyst),
                             Some(["keystore"]) => Ok(Field::Keyst),
-                            Some(["addr_history"]) => Ok(Field::AddrHistory),
                             Some(["addresses"]) => Ok(Field::Addrs),
-                            Some(["channel_backups"]) => Ok(Field::IgnoreMap),
-                            Some(["channels"]) => Ok(Field::IgnoreMap),
-                            Some(["fiat_value"]) => Ok(Field::IgnoreMap),
-                            Some(["invoices"]) => Ok(Field::IgnoreMap),
-                            Some(["labels"]) => Ok(Field::IgnoreMap),
-                            Some(["lightning_payments"]) => Ok(Field::IgnoreMap),
-                            Some(["lightning_preimages"]) => Ok(Field::IgnoreMap),
-                            Some(["lightning_privkey2"]) => Ok(Field::IgnoreString),
-                            Some(["payment_requests"]) => Ok(Field::IgnoreMap),
-                            Some(["prevouts_by_scripthash"]) => Ok(Field::IgnoreMap),
-                            Some(["qt-console-history"]) => Ok(Field::IgnoreVec),
-                            Some(["seed_type"]) => Ok(Field::IgnoreString),
-                            Some(["seed_version"]) => Ok(Field::IgnoreNumber),
-                            Some(["spent_outpoints"]) => Ok(Field::IgnoreMap),
-                            Some(["stored_height"]) => Ok(Field::IgnoreNumber),
-                            Some(["submarine_swaps"]) => Ok(Field::IgnoreMap),
-                            Some(["transactions"]) => Ok(Field::IgnoreMap),
                             Some(["wallet_type"]) => Ok(Field::WalTyp),
-                            Some(["tx_fees"]) => Ok(Field::IgnoreMap),
-                            Some(["txi"]) => Ok(Field::IgnoreMap),
-                            Some(["txo"]) => Ok(Field::IgnoreMap),
-                            Some(["use_change"]) => Ok(Field::IgnoreBool),
-                            Some(["use_encryption"]) => Ok(Field::IgnoreBool),
-                            Some(["winpos-qt"]) => Ok(Field::WinPosQt),
-                            Some(["verified_tx3"]) => Ok(Field::IgnoreMap),
-                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                            _ => Ok(Field::Ignore),
                         }
                     }
                 }
@@ -289,30 +278,8 @@ impl<'de> Deserialize<'de> for ElectrumWalletFile {
                         Field::WalTyp => {
                             wallet_type = map.next_value()?;
                         }
-                        Field::AddrHistory => {
-                            let _ignore: std::collections::hash_map::HashMap<
-                                String,
-                                Vec<(String, usize)>,
-                            > = map.next_value()?;
-                        }
-                        Field::WinPosQt => {
-                            let _ignore: (u16, u16, u16, u16) = map.next_value()?;
-                        }
-                        Field::IgnoreBool => {
-                            let _ignore: bool = map.next_value()?;
-                        }
-                        Field::IgnoreString => {
-                            let _ignore: String = map.next_value()?;
-                        }
-                        Field::IgnoreNumber => {
-                            let _ignore: usize = map.next_value()?;
-                        }
-                        Field::IgnoreVec => {
-                            let _ignore: Vec<String> = map.next_value()?;
-                        }
-                        Field::IgnoreMap => {
-                            let _ignore: std::collections::hash_map::HashMap<String, String> =
-                                map.next_value()?;
+                        Field::Ignore => {
+                            let _ignore = map.next_value::<de::IgnoredAny>()?;
                         }
                     }
                 }
