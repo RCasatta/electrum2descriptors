@@ -1,52 +1,15 @@
 use crate::{ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey};
 use bitcoin::util::bip32::{ExtendedPrivKey, ExtendedPubKey};
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, path::Path, str::FromStr, string::ToString};
 
 /// Representation of an electrum wallet file
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ElectrumWalletFile {
     pub addresses: Addresses,
-    pub keystore: Option<Keystore>,
     pub wallet_type: WalletType,
-    #[serde(default, rename = "x1/")]
-    pub x1: Option<Keystore>,
-    #[serde(default, rename = "x2/")]
-    pub x2: Option<Keystore>,
-    #[serde(default, rename = "x3/")]
-    pub x3: Option<Keystore>,
-    #[serde(default, rename = "x4/")]
-    pub x4: Option<Keystore>,
-    #[serde(default, rename = "x5/")]
-    pub x5: Option<Keystore>,
-    #[serde(default, rename = "x6/")]
-    pub x6: Option<Keystore>,
-    #[serde(default, rename = "x7/")]
-    pub x7: Option<Keystore>,
-}
-
-/// Representation of the addresses section of an electrum wallet file
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct Addresses {
-    pub change: Vec<String>,
-    pub receiving: Vec<String>,
-}
-
-/// Representation of a keystore section of an electrum wallet file. Can be single sig "keystore" or multisig "x1/" "x2/" ...
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct Keystore {
-    #[serde(default = "Keystore::default_type")]
-    pub r#type: String,
-    pub xprv: Option<String>,
-    pub xpub: String,
-}
-
-/// Representation of the wallet_type section of an electrum wallet file
-#[derive(Clone, Debug, PartialEq)]
-pub enum WalletType {
-    Standard,
-    Multisig(u8, u8),
+    pub keystores: Vec<Keystore>,
 }
 
 impl ElectrumWalletFile {
@@ -92,15 +55,8 @@ impl ElectrumWalletFile {
 
         let wallet = ElectrumWalletFile {
             addresses: Addresses::new(),
-            keystore: Some(keystore),
+            keystores: vec![keystore],
             wallet_type: WalletType::Standard,
-            x1: None,
-            x2: None,
-            x3: None,
-            x4: None,
-            x5: None,
-            x6: None,
-            x7: None,
         };
         Ok(wallet)
     }
@@ -140,35 +96,8 @@ impl ElectrumWalletFile {
 
             let wallet = ElectrumWalletFile {
                 addresses: Addresses::new(),
-                keystore: None,
+                keystores,
                 wallet_type: WalletType::Multisig(x.parse().unwrap(), y as u8),
-                x1: Some(keystores[0].clone()),
-                x2: Some(keystores[1].clone()),
-                x3: if y >= 3 {
-                    Some(keystores[2].clone())
-                } else {
-                    None
-                },
-                x4: if y >= 4 {
-                    Some(keystores[3].clone())
-                } else {
-                    None
-                },
-                x5: if y >= 5 {
-                    Some(keystores[4].clone())
-                } else {
-                    None
-                },
-                x6: if y >= 6 {
-                    Some(keystores[5].clone())
-                } else {
-                    None
-                },
-                x7: if y >= 7 {
-                    Some(keystores[6].clone())
-                } else {
-                    None
-                },
             };
             Ok(wallet)
         } else {
@@ -183,44 +112,27 @@ impl ElectrumWalletFile {
     pub fn to_descriptors(&self) -> Result<Vec<String>, String> {
         match self.wallet_type {
             WalletType::Standard => {
-                let exkey = self
-                    .keystore
-                    .as_ref()
-                    .ok_or("missing keystore")?
-                    .get_xkey()?;
+                let exkey = self.keystores[0].get_xkey()?;
                 let desc_ext = exkey.kind().to_string() + "(" + &exkey.xkeystr() + "/0/*)";
                 let desc_chg = exkey.kind().to_string() + "(" + &exkey.xkeystr() + "/1/*)";
                 Ok(vec![desc_ext, desc_chg])
             }
-            WalletType::Multisig(x, y) => {
-                let mut desc = String::new();
-                for i in 0..y {
-                    let query = format!("x{}", i + 1);
-                    let keystore = match query.as_str() {
-                        "x1" => &self.x1,
-                        "x2" => &self.x2,
-                        "x3" => &self.x3,
-                        "x4" => &self.x4,
-                        "x5" => &self.x5,
-                        "x6" => &self.x6,
-                        "x7" => &self.x7,
-                        _ => {
-                            return Err("unknown keystore".to_string());
-                        }
-                    }
-                    .as_ref()
-                    .ok_or(format!("missing keystore: {}", query))?;
-                    let exkey = keystore.get_xkey()?;
-                    if desc.is_empty() {
-                        let prefix = match &exkey.kind().to_string() as &str {
-                            "pkh" => "sh",
-                            kind => kind,
-                        }
-                        .to_string();
-                        desc = prefix + &format!("(sortedmulti({}", x);
-                    }
-                    desc += &(",".to_string() + &exkey.xkeystr() + "/0/*");
+            WalletType::Multisig(x, _y) => {
+                let xkeys = self
+                    .keystores
+                    .iter()
+                    .map(|ks| ks.get_xkey())
+                    .collect::<Result<Vec<Box<dyn ElectrumExtendedKey>>, _>>()?;
+                let prefix = match &xkeys[0].kind().to_string() as &str {
+                    "pkh" => "sh",
+                    kind => kind,
                 }
+                .to_string();
+                let prefix = format!("{}(sortedmulti({}", prefix, x);
+
+                let mut desc = xkeys.iter().fold(prefix, |acc, exkey| {
+                    acc + &(",".to_string() + &exkey.xkeystr() + "/0/*")
+                });
                 desc += "))";
                 let opening = desc.matches('(').count();
                 let closing = desc.matches(')').count();
@@ -235,6 +147,205 @@ impl ElectrumWalletFile {
     }
 }
 
+impl Serialize for ElectrumWalletFile {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // We don't know the length of the map at this point, so it's None
+        let mut map = serializer.serialize_map(None)?;
+        map.serialize_entry("addresses", &self.addresses)?;
+        map.serialize_entry("wallet_type", &self.wallet_type)?;
+        match self.wallet_type {
+            WalletType::Standard => {
+                map.serialize_entry("keystore", &self.keystores[0])?;
+            }
+            WalletType::Multisig(_x, _y) => {
+                self.keystores
+                    .iter()
+                    .enumerate()
+                    .map(|(i, keystore)| {
+                        let key = format!("x{}/", i + 1);
+                        map.serialize_entry(&key, &keystore)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+            }
+        }
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ElectrumWalletFile {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        enum Field {
+            Addrs,
+            Keyst,
+            WalTyp,
+            AddrHistory,
+            WinPosQt,
+            IgnoreBool,
+            IgnoreString,
+            IgnoreNumber,
+            IgnoreMap,
+            IgnoreVec,
+        }
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de> de::Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str(
+                            "`addresses` or `keystore` or `wallet_type` or 'x1/` or `x2/`",
+                        )
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+                    where
+                        E: de::Error,
+                    {
+                        let re = Regex::new(r#"(x)(\d+)(/)|([a-z_\-0-9]+)"#).unwrap();
+                        let captures = re.captures(value).map(|captures| {
+                            captures
+                                .iter()
+                                .skip(1)
+                                .flatten()
+                                .map(|c| c.as_str())
+                                .collect::<Vec<_>>()
+                        });
+                        match captures.as_deref() {
+                            Some(["x", _i, "/"]) => Ok(Field::Keyst),
+                            Some(["keystore"]) => Ok(Field::Keyst),
+                            Some(["addr_history"]) => Ok(Field::AddrHistory),
+                            Some(["addresses"]) => Ok(Field::Addrs),
+                            Some(["channel_backups"]) => Ok(Field::IgnoreMap),
+                            Some(["channels"]) => Ok(Field::IgnoreMap),
+                            Some(["fiat_value"]) => Ok(Field::IgnoreMap),
+                            Some(["invoices"]) => Ok(Field::IgnoreMap),
+                            Some(["labels"]) => Ok(Field::IgnoreMap),
+                            Some(["lightning_payments"]) => Ok(Field::IgnoreMap),
+                            Some(["lightning_preimages"]) => Ok(Field::IgnoreMap),
+                            Some(["lightning_privkey2"]) => Ok(Field::IgnoreString),
+                            Some(["payment_requests"]) => Ok(Field::IgnoreMap),
+                            Some(["prevouts_by_scripthash"]) => Ok(Field::IgnoreMap),
+                            Some(["qt-console-history"]) => Ok(Field::IgnoreVec),
+                            Some(["seed_type"]) => Ok(Field::IgnoreString),
+                            Some(["seed_version"]) => Ok(Field::IgnoreNumber),
+                            Some(["spent_outpoints"]) => Ok(Field::IgnoreMap),
+                            Some(["stored_height"]) => Ok(Field::IgnoreNumber),
+                            Some(["submarine_swaps"]) => Ok(Field::IgnoreMap),
+                            Some(["transactions"]) => Ok(Field::IgnoreMap),
+                            Some(["wallet_type"]) => Ok(Field::WalTyp),
+                            Some(["tx_fees"]) => Ok(Field::IgnoreMap),
+                            Some(["txi"]) => Ok(Field::IgnoreMap),
+                            Some(["txo"]) => Ok(Field::IgnoreMap),
+                            Some(["use_change"]) => Ok(Field::IgnoreBool),
+                            Some(["use_encryption"]) => Ok(Field::IgnoreBool),
+                            Some(["winpos-qt"]) => Ok(Field::WinPosQt),
+                            Some(["verified_tx3"]) => Ok(Field::IgnoreMap),
+                            _ => Err(de::Error::unknown_field(value, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
+        struct ElectrumWalletFileVisitor;
+
+        impl<'de> de::Visitor<'de> for ElectrumWalletFileVisitor {
+            type Value = ElectrumWalletFile;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct ElectrumWalletFile")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<ElectrumWalletFile, V::Error>
+            where
+                V: de::MapAccess<'de>,
+            {
+                let mut addresses = Addresses::new();
+                let mut keystores = Vec::new();
+                let mut wallet_type = WalletType::Standard;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Addrs => {
+                            addresses = map.next_value()?;
+                        }
+                        Field::Keyst => {
+                            keystores.push(map.next_value()?);
+                        }
+                        Field::WalTyp => {
+                            wallet_type = map.next_value()?;
+                        }
+                        Field::AddrHistory => {
+                            let _ignore: std::collections::hash_map::HashMap<
+                                String,
+                                Vec<(String, usize)>,
+                            > = map.next_value()?;
+                        }
+                        Field::WinPosQt => {
+                            let _ignore: (u16, u16, u16, u16) = map.next_value()?;
+                        }
+                        Field::IgnoreBool => {
+                            let _ignore: bool = map.next_value()?;
+                        }
+                        Field::IgnoreString => {
+                            let _ignore: String = map.next_value()?;
+                        }
+                        Field::IgnoreNumber => {
+                            let _ignore: usize = map.next_value()?;
+                        }
+                        Field::IgnoreVec => {
+                            let _ignore: Vec<String> = map.next_value()?;
+                        }
+                        Field::IgnoreMap => {
+                            let _ignore: std::collections::hash_map::HashMap<String, String> =
+                                map.next_value()?;
+                        }
+                    }
+                }
+
+                Ok(ElectrumWalletFile {
+                    addresses,
+                    keystores,
+                    wallet_type,
+                })
+            }
+        }
+
+        const FIELDS: &[&str] = &[
+            "addresses",
+            "addr_history",
+            "channel_backups",
+            "keystore",
+            "wallet_type",
+            "x1/",
+            "x2/",
+            "x3/",
+        ];
+        deserializer.deserialize_struct("ElectrumWalletFile", FIELDS, ElectrumWalletFileVisitor)
+    }
+}
+
+/// Representation of the addresses section of an electrum wallet file
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct Addresses {
+    pub change: Vec<String>,
+    pub receiving: Vec<String>,
+}
+
 impl Addresses {
     fn new() -> Self {
         Addresses {
@@ -242,6 +353,15 @@ impl Addresses {
             receiving: Vec::new(),
         }
     }
+}
+
+/// Representation of a keystore section of an electrum wallet file. Can be single sig "keystore" or multisig "x1/" "x2/" ...
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct Keystore {
+    #[serde(default = "Keystore::default_type")]
+    pub r#type: String,
+    pub xprv: Option<String>,
+    pub xpub: String,
 }
 
 impl Keystore {
@@ -290,6 +410,13 @@ impl Keystore {
     fn default_type() -> String {
         "bip32".to_string()
     }
+}
+
+/// Representation of the wallet_type section of an electrum wallet file
+#[derive(Clone, Debug, PartialEq)]
+pub enum WalletType {
+    Standard,
+    Multisig(u8, u8),
 }
 
 impl fmt::Display for WalletType {

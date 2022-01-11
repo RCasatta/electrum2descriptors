@@ -101,6 +101,13 @@ fn descriptor_electrum_wallet_roundtrip(#[case] wallet_name: &str, #[case] descr
     wallet.to_file(&filename).unwrap();
     // Testing that electrum can load the files was done manually.
 
+    //////
+    let test_dir = Path::new(file!()).canonicalize().unwrap();
+    let test_dir = test_dir.as_path().parent().unwrap();
+    let wallet_file = test_dir.join("wallets/".to_string() + wallet_name + "_exported");
+    wallet.to_file(&wallet_file).unwrap();
+    //////
+
     let imported = ElectrumWalletFile::from_file(&filename).unwrap();
     assert_eq!(wallet, imported);
 
