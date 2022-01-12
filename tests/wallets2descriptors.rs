@@ -1,15 +1,10 @@
-#[cfg(feature = "wallet_file")]
+#![cfg(feature = "wallet_file")]
 use bdk::{bitcoin::Network, database::MemoryDatabase, wallet::AddressIndex, Wallet};
-#[cfg(feature = "wallet_file")]
 use libelectrum2descriptors::ElectrumWalletFile;
-#[cfg(feature = "wallet_file")]
 use rstest::rstest;
-#[cfg(feature = "wallet_file")]
 use std::path::{Path, PathBuf};
-#[cfg(feature = "wallet_file")]
 use tempfile::tempdir;
 
-#[cfg(feature = "wallet_file")]
 #[rstest]
 #[case::default_legacy("default_legacy", 
     "pkh(tprv8ZgxMBicQKsPeYnCHtn5QZqhTgkkDmXebfQMXWmX7ThXJFCbzDTKFNRsB43GUmHzu2pdGcnnegFy175kFcgZQYC5BFPnRdYDPQyqetpyjb5/0/*)",
@@ -44,14 +39,12 @@ fn parse_wallet(
     assert_eq!(addr, exp);
 }
 
-#[cfg(feature = "wallet_file")]
 fn wallet_name_to_descriptors(wallet_name: &str) -> Vec<String> {
     let wallet_file = get_test_wallet_file(wallet_name);
     let wallet = ElectrumWalletFile::from_file(wallet_file.as_path()).unwrap();
     wallet.to_descriptors().unwrap()
 }
 
-#[cfg(feature = "wallet_file")]
 fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
     let test_dir = Path::new(file!()).canonicalize().unwrap();
     let test_dir = test_dir.as_path().parent().unwrap();
@@ -64,21 +57,18 @@ fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
     wallet_file.to_path_buf()
 }
 
-#[cfg(feature = "wallet_file")]
 fn first_address_from_descriptor(desc: &str, network: Network) -> String {
     let wallet = Wallet::new_offline(desc, None, network, MemoryDatabase::default()).unwrap();
     wallet.get_address(AddressIndex::New).unwrap().to_string()
 }
 
-#[cfg(feature = "wallet_file")]
 fn first_address_from_wallet_file(wallet_name: &str) -> String {
     let wallet_file = get_test_wallet_file(wallet_name);
     let wallet = ElectrumWalletFile::from_file(wallet_file.as_path()).unwrap();
-    wallet.addresses.receiving[0].clone()
+    wallet.addresses().receiving[0].clone()
 }
 
 /// Since converting a wallet with imported keys or addresses can't be converted to a descriptor anyway, we just leave a not so descriptive error message due to a different json format of such wallets.
-#[cfg(feature = "wallet_file")]
 #[rstest]
 #[case::imported_addr("imported_addr")]
 #[case::imported_privkey("imported_privkey")]
@@ -88,7 +78,6 @@ fn parse_imported(#[case] wallet_name: &str) {
     let _wallet = ElectrumWalletFile::from_file(wallet_file.as_path()).unwrap();
 }
 
-#[cfg(feature = "wallet_file")]
 #[rstest]
 #[case::default_legacy("default_legacy", 
     "pkh(tprv8ZgxMBicQKsPeYnCHtn5QZqhTgkkDmXebfQMXWmX7ThXJFCbzDTKFNRsB43GUmHzu2pdGcnnegFy175kFcgZQYC5BFPnRdYDPQyqetpyjb5/0/*)")]

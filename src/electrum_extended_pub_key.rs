@@ -118,7 +118,7 @@ impl ElectrumExtendedKey for ElectrumExtendedPubKey {
     }
 
     /// Returns the xpub as String
-    fn xkeystr(&self) -> String {
+    fn xkey_str(&self) -> String {
         self.xpub.to_string()
     }
 

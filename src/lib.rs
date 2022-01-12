@@ -13,7 +13,7 @@ pub trait ElectrumExtendedKey {
     fn to_descriptors(&self) -> Vec<String>;
 
     /// Returns the bitcoin extended key (xpub or xprv) as String
-    fn xkeystr(&self) -> String;
+    fn xkey_str(&self) -> String;
 
     /// Returns the kind of script
     fn kind(&self) -> &str;

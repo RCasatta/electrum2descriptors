@@ -124,7 +124,7 @@ impl ElectrumExtendedKey for ElectrumExtendedPrivKey {
     }
 
     /// Returns the xprv as String
-    fn xkeystr(&self) -> String {
+    fn xkey_str(&self) -> String {
         self.xprv.to_string()
     }
 
