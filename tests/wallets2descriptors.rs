@@ -58,7 +58,7 @@ fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
 }
 
 fn first_address_from_descriptor(desc: &str, network: Network) -> String {
-    let wallet = Wallet::new_offline(desc, None, network, MemoryDatabase::default()).unwrap();
+    let wallet = Wallet::new(desc, None, network, MemoryDatabase::default()).unwrap();
     wallet.get_address(AddressIndex::New).unwrap().to_string()
 }
 

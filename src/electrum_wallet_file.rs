@@ -165,7 +165,7 @@ impl ElectrumWalletFile {
                     .iter()
                     .map(|ks| ks.get_xkey())
                     .collect::<Result<Vec<Box<dyn ElectrumExtendedKey>>, _>>()?;
-                let prefix = match &xkeys[0].kind().to_string() as &str {
+                let prefix = match xkeys[0].kind() as &str {
                     "pkh" => "sh",
                     kind => kind,
                 }
@@ -394,10 +394,7 @@ impl Keystore {
 
         let expub = if let Ok(xprv) = xprv {
             let secp = bitcoin::secp256k1::Secp256k1::new();
-            ElectrumExtendedPubKey::new(
-                ExtendedPubKey::from_private(&secp, &xprv),
-                kind.to_string(),
-            )
+            ElectrumExtendedPubKey::new(ExtendedPubKey::from_priv(&secp, &xprv), kind.to_string())
         } else {
             ElectrumExtendedPubKey::new(
                 ExtendedPubKey::from_str(xkey).map_err(|e| e.to_string())?,

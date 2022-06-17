@@ -1,7 +1,8 @@
 use crate::ElectrumExtendedKey;
+use bitcoin::secp256k1;
 use bitcoin::util::base58;
 use bitcoin::util::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
-use bitcoin::{Network, PublicKey};
+use bitcoin::Network;
 use std::convert::TryInto;
 use std::str::FromStr;
 
@@ -105,7 +106,8 @@ impl FromStr for ElectrumExtendedPubKey {
             parent_fingerprint: Fingerprint::from(&data[5..9]),
             child_number,
             chain_code: ChainCode::from(&data[13..45]),
-            public_key: PublicKey::from_slice(&data[45..78]).map_err(|e| e.to_string())?,
+            public_key: secp256k1::PublicKey::from_slice(&data[45..78])
+                .map_err(|e| e.to_string())?,
         };
         Ok(ElectrumExtendedPubKey { xpub, kind })
     }
@@ -156,7 +158,7 @@ impl ElectrumExtendedPubKey {
         let child_number: u32 = self.xpub.child_number.into();
         data.extend(child_number.to_be_bytes());
         data.extend(self.xpub.chain_code.as_bytes());
-        data.extend(&self.xpub.public_key.to_bytes());
+        data.extend(&self.xpub.public_key.serialize()); // or serialize_uncompressed
 
         if data.len() != 78 {
             return Err(base58::Error::InvalidLength(data.len()).to_string());
