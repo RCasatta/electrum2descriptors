@@ -184,7 +184,6 @@ mod tests {
     use super::*;
     use bitcoin::secp256k1::Secp256k1;
     use miniscript::descriptor::DescriptorPublicKey;
-    use miniscript::{DescriptorTrait, TranslatePk2};
     use std::str::FromStr;
 
     #[test]
@@ -231,9 +230,10 @@ mod tests {
         let descriptors = electrum_xpub.to_descriptors();
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
             descriptors[0].parse().unwrap();
+        let secp = Secp256k1::verification_only();
         let first_address = descriptor
-            .derive(0)
-            .translate_pk2(|xpk| xpk.derive_public_key(&Secp256k1::verification_only()))
+            .at_derivation_index(0)
+            .derived_descriptor(&secp)
             .unwrap()
             .address(electrum_xpub.xpub.network)
             .unwrap()

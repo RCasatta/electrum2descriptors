@@ -1,6 +1,6 @@
 [package]
 name = "electrum2descriptors"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Riccardo Casatta <riccardo@casatta.it>"]
 edition = "2018"
 description = "Converts electrum xpubs (like vpub, ypub...) into output descriptors"
@@ -22,7 +22,7 @@ name = "electrum2descriptors"
 path = "src/bin.rs"
 
 [dependencies]
-bitcoin = "0.28"
+bitcoin = "0.29"
 
 # Optional dependencies
 serde = { version = "1", optional = true }
@@ -30,8 +30,8 @@ serde_json = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 
 [dev-dependencies]
-miniscript = "7"
-bdk = "0.19"
+miniscript = "8"
+bdk = "0.24"
 rstest = "0.12"
 tempfile = "3.3"
 
