@@ -1,7 +1,7 @@
 use crate::ElectrumExtendedKey;
 use bitcoin::secp256k1;
-use bitcoin::util::base58;
-use bitcoin::util::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
+use bitcoin::base58;
+use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
 use bitcoin::Network;
 use std::convert::TryInto;
 use std::str::FromStr;
@@ -90,7 +90,7 @@ impl FromStr for ElectrumExtendedPubKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = base58::from_check(s).map_err(|e| e.to_string())?;
+        let data = base58::decode_check(s).map_err(|e| e.to_string())?;
 
         if data.len() != 78 {
             return Err(base58::Error::InvalidLength(data.len()).to_string());
@@ -103,9 +103,9 @@ impl FromStr for ElectrumExtendedPubKey {
         let xpub = ExtendedPubKey {
             network,
             depth: data[4],
-            parent_fingerprint: Fingerprint::from(&data[5..9]),
+            parent_fingerprint: Fingerprint::from(&data[5..9].try_into().unwrap()),
             child_number,
-            chain_code: ChainCode::from(&data[13..45]),
+            chain_code: ChainCode::from(&data[13..45].try_into().unwrap()),
             public_key: secp256k1::PublicKey::from_slice(&data[45..78])
                 .map_err(|e| e.to_string())?,
         };
@@ -164,7 +164,7 @@ impl ElectrumExtendedPubKey {
             return Err(base58::Error::InvalidLength(data.len()).to_string());
         }
 
-        Ok(base58::check_encode_slice(&data))
+        Ok(base58::encode_check(&data))
     }
 }
 
@@ -182,7 +182,7 @@ fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Erro
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::secp256k1::Secp256k1;
+    use miniscript::bitcoin::secp256k1::Secp256k1;
     use miniscript::descriptor::DescriptorPublicKey;
     use std::str::FromStr;
 
@@ -227,6 +227,7 @@ mod tests {
 
     fn test_first_address(electrum_xpub: &str, expected_first_address: &str) {
         let electrum_xpub = ElectrumExtendedPubKey::from_str(electrum_xpub).unwrap();
+        assert_eq!(electrum_xpub.xpub.network, Network::Bitcoin);
         let descriptors = electrum_xpub.to_descriptors();
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
             descriptors[0].parse().unwrap();
@@ -235,7 +236,7 @@ mod tests {
             .at_derivation_index(0)
             .derived_descriptor(&secp)
             .unwrap()
-            .address(electrum_xpub.xpub.network)
+            .address(miniscript::bitcoin::Network::Bitcoin)
             .unwrap()
             .to_string();
         assert_eq!(expected_first_address, first_address);

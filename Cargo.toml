@@ -22,7 +22,7 @@ name = "electrum2descriptors"
 path = "src/bin.rs"
 
 [dependencies]
-bitcoin = "0.29"
+bitcoin = "0.30"
 
 # Optional dependencies
 serde = { version = "1", optional = true }
@@ -30,10 +30,10 @@ serde_json = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 
 [dev-dependencies]
-miniscript = "8"
-bdk = "0.24"
-rstest = "0.12"
-tempfile = "3.3"
+miniscript = "9"
+bdk = "0.28"
+rstest = "0.17"
+tempfile = "3.5"
 
 [features]
 default = [ "wallet_file" ]

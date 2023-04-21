@@ -1,5 +1,5 @@
 use crate::{ElectrumExtendedKey, ElectrumExtendedPrivKey, ElectrumExtendedPubKey};
-use bitcoin::util::bip32::{ExtendedPrivKey, ExtendedPubKey};
+use bitcoin::bip32::{ExtendedPrivKey, ExtendedPubKey};
 use regex::Regex;
 use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, io::BufReader, path::Path, str::FromStr, string::ToString};

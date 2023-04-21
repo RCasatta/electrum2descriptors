@@ -1,7 +1,7 @@
 use crate::ElectrumExtendedKey;
 use bitcoin::secp256k1;
-use bitcoin::util::base58;
-use bitcoin::util::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
+use bitcoin::base58;
+use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
 use bitcoin::Network;
 use std::convert::TryInto;
 use std::str::FromStr;
@@ -90,7 +90,7 @@ impl FromStr for ElectrumExtendedPrivKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = base58::from_check(s).map_err(|e| e.to_string())?;
+        let data = base58::decode_check(s).map_err(|e| e.to_string())?;
 
         if data.len() != 78 {
             return Err(base58::Error::InvalidLength(data.len()).to_string());
@@ -104,9 +104,9 @@ impl FromStr for ElectrumExtendedPrivKey {
         let xprv = ExtendedPrivKey {
             network,
             depth: data[4],
-            parent_fingerprint: Fingerprint::from(&data[5..9]),
+            parent_fingerprint: Fingerprint::from(&data[5..9].try_into().unwrap()),
             child_number,
-            chain_code: ChainCode::from(&data[13..45]),
+            chain_code: ChainCode::from(&data[13..45].try_into().unwrap()),
             private_key: key,
         };
         Ok(ElectrumExtendedPrivKey { xprv, kind })
@@ -165,7 +165,7 @@ impl ElectrumExtendedPrivKey {
             return Err(base58::Error::InvalidLength(data.len()).to_string());
         }
 
-        Ok(base58::check_encode_slice(&data))
+        Ok(base58::encode_check(&data))
     }
 }
 
