@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - master
+  pull_request: {}
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,12 +15,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build
-        run: cargo build --verbose
+        run: cargo build
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
       - name: Build without default features
-        run: cargo build --no-default-features --verbose
+        run: cargo build --no-default-features
       - name: Run tests without default features
-        run: cargo test --no-default-features --verbose
+        run: cargo test --no-default-features
