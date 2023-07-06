@@ -14,14 +14,56 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        rust:
+          - 1.70.0 # docker rust:1-bookworm
+          - 1.63.0 # debian
+          - 1.61.0 # MSRV
+        features:
+          - ""
+          - default
+
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
       - name: Build
-        run: cargo build
+        run: cargo build --no-default-features --features "${{ matrix.features }}"
       - name: Run tests
-        run: cargo test
-      - name: Build without default features
-        run: cargo build --no-default-features
-      - name: Run tests without default features
-        run: cargo test --no-default-features
+        run: cargo test --no-default-features --features "${{ matrix.features }}"
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+  fmt:
+    name: Rust fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
+      - name: Check fmt
+        run: cargo fmt --all -- --check
+
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/audit@v1
+        name: Audit Rust Dependencies
+        with:
+          # Comma separated list of issues to ignore
+          ignore: RUSTSEC-2020-0036
+

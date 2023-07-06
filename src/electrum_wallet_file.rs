@@ -5,7 +5,7 @@ use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Seriali
 use std::{fmt, io::BufReader, path::Path, str::FromStr, string::ToString};
 
 /// Representation of an electrum wallet file. Has custom serialization and de-serialization routines to more accurately represent what we need, and the electrum wallet file format.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ElectrumWalletFile {
     addresses: Addresses,
     wallet_type: WalletType,
@@ -358,7 +358,7 @@ impl<'de> Deserialize<'de> for ElectrumWalletFile {
 }
 
 /// Representation of the addresses section of an electrum wallet file
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Addresses {
     pub change: Vec<String>,
     pub receiving: Vec<String>,
@@ -374,7 +374,7 @@ impl Addresses {
 }
 
 /// Representation of a keystore section of an electrum wallet file. Can be single sig "keystore" or multisig "x1/" "x2/" ...
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Keystore {
     #[serde(default = "Keystore::default_type")]
     pub r#type: String,
@@ -428,7 +428,7 @@ impl Keystore {
 }
 
 /// Representation of the wallet_type section of an electrum wallet file. Has custom serialization and de-serialization implementatoin.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum WalletType {
     Standard,
     Multisig(u8, u8),

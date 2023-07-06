@@ -1,7 +1,7 @@
 use crate::ElectrumExtendedKey;
-use bitcoin::secp256k1;
 use bitcoin::base58;
 use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
+use bitcoin::secp256k1;
 use bitcoin::Network;
 use std::convert::TryInto;
 use std::str::FromStr;

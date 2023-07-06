@@ -1,6 +1,7 @@
 # electrum2descriptors
 
 [![crates.io](https://img.shields.io/crates/v/electrum2descriptors.svg)](https://crates.io/crates/electrum2descriptors)
+[![rustc](https://img.shields.io/badge/rustc-1.61%2B-lightgrey.svg)](https://blog.rust-lang.org/2022/05/19/Rust-1.61.0.html)
 
 Converts [slip-0132](https://github.com/satoshilabs/slips/blob/master/slip-0132.md) extended keys (like the vpub, ypub, yprv, etc. used by Electrum) into [output descriptors](https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md)
 
