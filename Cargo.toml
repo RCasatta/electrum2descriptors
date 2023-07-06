@@ -25,7 +25,7 @@ path = "src/bin.rs"
 bitcoin = "0.30"
 
 # Optional dependencies
-serde = { version = "1", optional = true }
+serde = { version = "1", optional = true, features = ["derive"] }
 serde_json = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 
