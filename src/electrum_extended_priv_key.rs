@@ -1,4 +1,4 @@
-use crate::ElectrumExtendedKey;
+use crate::{Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
 use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
 use bitcoin::secp256k1;
@@ -87,19 +87,21 @@ fn initialize_sentinels() -> SentinelMap {
 }
 
 impl FromStr for ElectrumExtendedPrivKey {
-    type Err = String;
+    type Err = Electrum2DescriptorError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = base58::decode_check(s).map_err(|e| e.to_string())?;
+        let data = base58::decode_check(s)?;
 
         if data.len() != 78 {
-            return Err(base58::Error::InvalidLength(data.len()).to_string());
+            return Err(Electrum2DescriptorError::Base58Error(
+                base58::Error::InvalidLength(data.len()),
+            ));
         }
 
         let cn_int = u32::from_be_bytes(data[9..13].try_into().unwrap());
         let child_number: ChildNumber = ChildNumber::from(cn_int);
-        let (network, kind) = match_electrum_xprv(&data[0..4]).map_err(|e| e.to_string())?;
-        let key = secp256k1::SecretKey::from_slice(&data[46..78]).map_err(|e| e.to_string())?;
+        let (network, kind) = match_electrum_xprv(&data[0..4])?;
+        let key = secp256k1::SecretKey::from_slice(&data[46..78])?;
 
         let xprv = ExtendedPrivKey {
             network,
@@ -146,12 +148,12 @@ impl ElectrumExtendedPrivKey {
     }
 
     /// converts to electrum format
-    pub fn electrum_xprv(&self) -> Result<String, String> {
+    pub fn electrum_xprv(&self) -> Result<String, Electrum2DescriptorError> {
         let sentinels = initialize_sentinels();
         let sentinel = sentinels
             .iter()
             .find(|sent| sent.1 == self.xprv.network && sent.2 == self.kind)
-            .ok_or_else(|| "unknown type".to_string())?;
+            .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xprv.depth);
         data.extend(self.xprv.parent_fingerprint.as_bytes());
@@ -162,7 +164,9 @@ impl ElectrumExtendedPrivKey {
         data.extend(self.xprv.private_key.as_ref());
 
         if data.len() != 78 {
-            return Err(base58::Error::InvalidLength(data.len()).to_string());
+            return Err(Electrum2DescriptorError::Base58Error(
+                base58::Error::InvalidLength(data.len()),
+            ));
         }
 
         Ok(base58::encode_check(&data))

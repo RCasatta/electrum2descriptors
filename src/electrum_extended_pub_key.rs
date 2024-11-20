@@ -1,4 +1,4 @@
-use crate::ElectrumExtendedKey;
+use crate::{Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
 use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
 use bitcoin::secp256k1;
@@ -87,18 +87,20 @@ fn initialize_sentinels() -> SentinelMap {
 }
 
 impl FromStr for ElectrumExtendedPubKey {
-    type Err = String;
+    type Err = Electrum2DescriptorError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data = base58::decode_check(s).map_err(|e| e.to_string())?;
+        let data = base58::decode_check(s)?;
 
         if data.len() != 78 {
-            return Err(base58::Error::InvalidLength(data.len()).to_string());
+            return Err(Electrum2DescriptorError::Base58Error(
+                base58::Error::InvalidLength(data.len()),
+            ));
         }
 
         let cn_int = u32::from_be_bytes(data[9..13].try_into().unwrap());
         let child_number: ChildNumber = ChildNumber::from(cn_int);
-        let (network, kind) = match_electrum_xpub(&data[0..4]).map_err(|e| e.to_string())?;
+        let (network, kind) = match_electrum_xpub(&data[0..4])?;
 
         let xpub = ExtendedPubKey {
             network,
@@ -106,8 +108,7 @@ impl FromStr for ElectrumExtendedPubKey {
             parent_fingerprint: Fingerprint::from(&data[5..9].try_into().unwrap()),
             child_number,
             chain_code: ChainCode::from(&data[13..45].try_into().unwrap()),
-            public_key: secp256k1::PublicKey::from_slice(&data[45..78])
-                .map_err(|e| e.to_string())?,
+            public_key: secp256k1::PublicKey::from_slice(&data[45..78])?,
         };
         Ok(ElectrumExtendedPubKey { xpub, kind })
     }
@@ -146,12 +147,12 @@ impl ElectrumExtendedPubKey {
     }
 
     /// converts to electrum format
-    pub fn electrum_xpub(&self) -> Result<String, String> {
+    pub fn electrum_xpub(&self) -> Result<String, Electrum2DescriptorError> {
         let sentinels = initialize_sentinels();
         let sentinel = sentinels
             .iter()
             .find(|sent| sent.1 == self.xpub.network && sent.2 == self.kind)
-            .ok_or_else(|| "unknown type".to_string())?;
+            .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xpub.depth);
         data.extend(self.xpub.parent_fingerprint.as_bytes());
@@ -161,7 +162,9 @@ impl ElectrumExtendedPubKey {
         data.extend(&self.xpub.public_key.serialize()); // or serialize_uncompressed
 
         if data.len() != 78 {
-            return Err(base58::Error::InvalidLength(data.len()).to_string());
+            return Err(Electrum2DescriptorError::Base58Error(
+                base58::Error::InvalidLength(data.len()),
+            ));
         }
 
         Ok(base58::encode_check(&data))
