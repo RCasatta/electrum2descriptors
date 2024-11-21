@@ -1,5 +1,5 @@
 use crate::{
-    Electrum2DescriptorError, ElectrumExtendedKey, ElectrumExtendedPrivKey,
+    Descriptors, Electrum2DescriptorError, ElectrumExtendedKey, ElectrumExtendedPrivKey,
     ElectrumExtendedPubKey,
 };
 use bitcoin::bip32::{ExtendedPrivKey, ExtendedPubKey};
@@ -159,13 +159,17 @@ impl ElectrumWalletFile {
     }
 
     /// Generate output descriptors matching the electrum wallet
-    pub fn to_descriptors(&self) -> Result<Vec<String>, Electrum2DescriptorError> {
+    pub fn to_descriptors(&self) -> Result<Descriptors, Electrum2DescriptorError> {
         match self.wallet_type {
             WalletType::Standard => {
                 let exkey = self.keystores[0].get_xkey()?;
                 let desc_ext = exkey.kind().to_string() + "(" + &exkey.xkey_str() + "/0/*)";
                 let desc_chg = exkey.kind().to_string() + "(" + &exkey.xkey_str() + "/1/*)";
-                Ok(vec![desc_ext, desc_chg])
+
+                Ok(Descriptors {
+                    external: desc_ext,
+                    change: desc_chg,
+                })
             }
             WalletType::Multisig(x, _y) => {
                 let xkeys = self
@@ -191,7 +195,10 @@ impl ElectrumWalletFile {
                 };
                 let desc_chg = desc.replace("/0/*", "/1/*");
 
-                Ok(vec![desc, desc_chg])
+                Ok(Descriptors {
+                    external: desc,
+                    change: desc_chg,
+                })
             }
         }
     }

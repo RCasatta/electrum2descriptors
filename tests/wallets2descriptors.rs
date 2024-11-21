@@ -1,6 +1,6 @@
 #![cfg(feature = "wallet_file")]
 use bdk::{bitcoin::Network, database::MemoryDatabase, wallet::AddressIndex, Wallet};
-use libelectrum2descriptors::ElectrumWalletFile;
+use libelectrum2descriptors::{Descriptors, ElectrumWalletFile};
 use rstest::rstest;
 use std::path::{Path, PathBuf};
 use tempfile::tempdir;
@@ -33,13 +33,14 @@ fn parse_wallet(
     #[case] expected_descriptor_chg: &str,
 ) {
     let desc = wallet_name_to_descriptors(wallet_name);
-    assert_eq!(desc, vec![expected_descriptor_ext, expected_descriptor_chg]);
-    let addr = first_address_from_descriptor(&desc[0], Network::Testnet);
+    assert_eq!(desc.external, expected_descriptor_ext);
+    assert_eq!(desc.change, expected_descriptor_chg);
+    let addr = first_address_from_descriptor(&desc.external, Network::Testnet);
     let exp = first_address_from_wallet_file(wallet_name);
     assert_eq!(addr, exp);
 }
 
-fn wallet_name_to_descriptors(wallet_name: &str) -> Vec<String> {
+fn wallet_name_to_descriptors(wallet_name: &str) -> Descriptors {
     let wallet_file = get_test_wallet_file(wallet_name);
     let wallet = ElectrumWalletFile::from_file(wallet_file.as_path()).unwrap();
     wallet.to_descriptors().unwrap()
@@ -105,5 +106,5 @@ fn descriptor_electrum_wallet_roundtrip(#[case] wallet_name: &str, #[case] descr
     assert_eq!(wallet, imported);
 
     let desc = wallet.to_descriptors().unwrap();
-    assert_eq!(desc[0], descriptor);
+    assert_eq!(desc.external, descriptor);
 }

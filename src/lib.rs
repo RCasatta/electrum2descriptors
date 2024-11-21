@@ -12,7 +12,7 @@ pub use errors::Electrum2DescriptorError;
 
 pub trait ElectrumExtendedKey {
     /// Returns internal and external descriptor
-    fn to_descriptors(&self) -> Vec<String>;
+    fn to_descriptors(&self) -> Descriptors;
 
     /// Returns the bitcoin extended key (xpub or xprv) as String
     fn xkey_str(&self) -> String;

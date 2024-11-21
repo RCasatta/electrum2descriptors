@@ -1,4 +1,4 @@
-use crate::{Electrum2DescriptorError, ElectrumExtendedKey};
+use crate::{Descriptors, Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
 use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
 use bitcoin::secp256k1;
@@ -126,12 +126,12 @@ impl ElectrumExtendedKey for ElectrumExtendedPubKey {
     }
 
     /// Returns internal and external descriptor
-    fn to_descriptors(&self) -> Vec<String> {
+    fn to_descriptors(&self) -> Descriptors {
         let xpub = self.xpub.to_string();
         let closing_parenthesis = if self.kind.contains('(') { ")" } else { "" };
-        (0..=1)
-            .map(|i| format!("{}({}/{}/*){}", self.kind, xpub, i, closing_parenthesis))
-            .collect()
+        let [external, change] =
+            [0, 1].map(|i| format!("{}({}/{}/*){}", self.kind, xpub, i, closing_parenthesis));
+        Descriptors { external, change }
     }
 }
 
@@ -195,8 +195,8 @@ mod tests {
         assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
         assert_eq!(electrum_xpub.kind, "wpkh");
         let descriptors = electrum_xpub.to_descriptors();
-        assert_eq!(descriptors[0], "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)");
-        assert_eq!(descriptors[1], "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
+        assert_eq!(descriptors.external, "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)");
+        assert_eq!(descriptors.change, "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
         let xpub = electrum_xpub.xpub();
         assert_eq!(xpub.to_string(), "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
     }
@@ -233,7 +233,7 @@ mod tests {
         assert_eq!(electrum_xpub.xpub.network, Network::Bitcoin);
         let descriptors = electrum_xpub.to_descriptors();
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
-            descriptors[0].parse().unwrap();
+            descriptors.external.parse().unwrap();
         let secp = Secp256k1::verification_only();
         let first_address = descriptor
             .at_derivation_index(0)

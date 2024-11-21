@@ -1,4 +1,4 @@
-use crate::{Electrum2DescriptorError, ElectrumExtendedKey};
+use crate::{Descriptors, Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
 use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
 use bitcoin::secp256k1;
@@ -127,12 +127,12 @@ impl ElectrumExtendedKey for ElectrumExtendedPrivKey {
     }
 
     /// Returns internal and external descriptor
-    fn to_descriptors(&self) -> Vec<String> {
+    fn to_descriptors(&self) -> Descriptors {
         let xprv = self.xprv.to_string();
         let closing_parenthesis = if self.kind.contains('(') { ")" } else { "" };
-        (0..=1)
-            .map(|i| format!("{}({}/{}/*){}", self.kind, xprv, i, closing_parenthesis))
-            .collect()
+        let [external, change] =
+            [0, 1].map(|i| format!("{}({}/{}/*){}", self.kind, xprv, i, closing_parenthesis));
+        Descriptors { external, change }
     }
 }
 
@@ -195,8 +195,8 @@ mod tests {
         assert_eq!(electrum_xprv.xprv.to_string(),"xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
         assert_eq!(electrum_xprv.kind, "sh(wpkh");
         let descriptors = electrum_xprv.to_descriptors();
-        assert_eq!(descriptors[0], "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/0/*))");
-        assert_eq!(descriptors[1], "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/1/*))");
+        assert_eq!(descriptors.external, "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/0/*))");
+        assert_eq!(descriptors.change, "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/1/*))");
         let xprv = electrum_xprv.xprv();
         assert_eq!(xprv.to_string(), "xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
     }
