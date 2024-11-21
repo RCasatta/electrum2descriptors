@@ -7,7 +7,7 @@ Converts [slip-0132](https://github.com/satoshilabs/slips/blob/master/slip-0132.
 
 This project consists of a library and an executable. 
 
-The work of @ulrichard in this project was sponsored by [SEBA Bank AG](https://seba.swiss)
+The work of @ulrichard in this project was sponsored by [AMINA Bank AG](https://aminagroup.com)
 
 ## Usage library
 For the library interface read [the docs](https://docs.rs/electrum2descriptors/latest/libelectrum2descriptors/).

@@ -1,6 +1,6 @@
 [package]
 name = "electrum2descriptors"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Riccardo Casatta <riccardo@casatta.it>"]
 edition = "2018"
 description = "Converts electrum xpubs (like vpub, ypub...) into output descriptors"
@@ -32,7 +32,7 @@ regex = { version = "1", optional = true }
 
 [dev-dependencies]
 miniscript = "9"
-bdk = "0.28"
+bdk = "0.29"
 rstest = "0.17"
 tempfile = "3.5"
 
