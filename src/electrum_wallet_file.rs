@@ -230,6 +230,23 @@ impl ElectrumWalletFile {
     }
 }
 
+impl FromStr for ElectrumWalletFile {
+    type Err = Electrum2DescriptorError;
+
+    /// Parse an electrum wallet file from string
+    fn from_str(wallet_file: &str) -> Result<Self, Electrum2DescriptorError> {
+        Ok(serde_json::from_str(wallet_file)?)
+    }
+}
+
+impl std::fmt::Display for ElectrumWalletFile {
+    /// Write to a string as electrum wallet file format
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error {})?;
+        write!(f, "{}", json)
+    }
+}
+
 impl Serialize for ElectrumWalletFile {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
