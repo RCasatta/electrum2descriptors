@@ -1,5 +1,5 @@
 #![cfg(feature = "wallet_file")]
-use bdk::{bitcoin::Network, database::MemoryDatabase, wallet::AddressIndex, Wallet};
+use bdk_wallet::{bitcoin::Network, KeychainKind, Wallet};
 use libelectrum2descriptors::{Descriptors, ElectrumWalletFile};
 use rstest::rstest;
 use std::{
@@ -62,8 +62,14 @@ fn get_test_wallet_file(wallet_name: &str) -> PathBuf {
 }
 
 fn first_address_from_descriptor(desc: &str, network: Network) -> String {
-    let wallet = Wallet::new(desc, None, network, MemoryDatabase::default()).unwrap();
-    wallet.get_address(AddressIndex::New).unwrap().to_string()
+    let mut wallet = Wallet::create_single(desc.to_string())
+        .network(network)
+        .create_wallet_no_persist()
+        .unwrap();
+    wallet
+        .reveal_next_address(KeychainKind::External)
+        .address
+        .to_string()
 }
 
 fn first_address_from_wallet_file(wallet_name: &str) -> String {

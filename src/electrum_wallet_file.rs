@@ -2,7 +2,7 @@ use crate::{
     Descriptors, Electrum2DescriptorError, ElectrumExtendedKey, ElectrumExtendedPrivKey,
     ElectrumExtendedPubKey,
 };
-use bitcoin::bip32::{ExtendedPrivKey, ExtendedPubKey};
+use bitcoin::bip32::{Xpriv, Xpub};
 use regex::Regex;
 use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, io::BufReader, path::Path, str::FromStr, string::ToString};
@@ -416,7 +416,7 @@ pub struct Keystore {
 impl Keystore {
     /// Construct a Keystore from script kind and xpub or xprv
     fn new(kind: &str, xkey: &str) -> Result<Self, Electrum2DescriptorError> {
-        let xprv = ExtendedPrivKey::from_str(xkey);
+        let xprv = Xpriv::from_str(xkey);
         let exprv = if let Ok(xprv) = xprv {
             Some(ElectrumExtendedPrivKey::new(xprv, kind.to_string()).electrum_xprv()?)
         } else {
@@ -425,9 +425,9 @@ impl Keystore {
 
         let expub = if let Ok(xprv) = xprv {
             let secp = bitcoin::secp256k1::Secp256k1::new();
-            ElectrumExtendedPubKey::new(ExtendedPubKey::from_priv(&secp, &xprv), kind.to_string())
+            ElectrumExtendedPubKey::new(Xpub::from_priv(&secp, &xprv), kind.to_string())
         } else {
-            ElectrumExtendedPubKey::new(ExtendedPubKey::from_str(xkey)?, kind.to_string())
+            ElectrumExtendedPubKey::new(Xpub::from_str(xkey)?, kind.to_string())
         }
         .electrum_xpub()?;
 

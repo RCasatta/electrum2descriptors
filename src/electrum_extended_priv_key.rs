@@ -1,13 +1,13 @@
 use crate::{Descriptors, Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
-use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPrivKey, Fingerprint};
+use bitcoin::bip32::{ChainCode, ChildNumber, Fingerprint, Xpriv};
 use bitcoin::secp256k1;
-use bitcoin::Network;
+use bitcoin::{Network, NetworkKind};
 use std::convert::TryInto;
 use std::str::FromStr;
 
 pub struct ElectrumExtendedPrivKey {
-    xprv: ExtendedPrivKey,
+    xprv: Xpriv,
     kind: String,
 }
 
@@ -93,9 +93,7 @@ impl FromStr for ElectrumExtendedPrivKey {
         let data = base58::decode_check(s)?;
 
         if data.len() != 78 {
-            return Err(Electrum2DescriptorError::Base58Error(
-                base58::Error::InvalidLength(data.len()),
-            ));
+            return Err(Electrum2DescriptorError::InvalidLength(data.len()));
         }
 
         let cn_int = u32::from_be_bytes(data[9..13].try_into().unwrap());
@@ -103,8 +101,8 @@ impl FromStr for ElectrumExtendedPrivKey {
         let (network, kind) = match_electrum_xprv(&data[0..4])?;
         let key = secp256k1::SecretKey::from_slice(&data[46..78])?;
 
-        let xprv = ExtendedPrivKey {
-            network,
+        let xprv = Xpriv {
+            network: network.into(),
             depth: data[4],
             parent_fingerprint: Fingerprint::from(&data[5..9].try_into().unwrap()),
             child_number,
@@ -138,12 +136,12 @@ impl ElectrumExtendedKey for ElectrumExtendedPrivKey {
 
 impl ElectrumExtendedPrivKey {
     /// Constructs a new instance
-    pub fn new(xprv: ExtendedPrivKey, kind: String) -> Self {
+    pub fn new(xprv: Xpriv, kind: String) -> Self {
         ElectrumExtendedPrivKey { xprv, kind }
     }
 
     /// Returns the xprv
-    pub fn xprv(&self) -> &ExtendedPrivKey {
+    pub fn xprv(&self) -> &Xpriv {
         &self.xprv
     }
 
@@ -152,7 +150,7 @@ impl ElectrumExtendedPrivKey {
         let sentinels = initialize_sentinels();
         let sentinel = sentinels
             .iter()
-            .find(|sent| sent.1 == self.xprv.network && sent.2 == self.kind)
+            .find(|sent| NetworkKind::from(sent.1) == self.xprv.network && sent.2 == self.kind)
             .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xprv.depth);
@@ -164,22 +162,20 @@ impl ElectrumExtendedPrivKey {
         data.extend(self.xprv.private_key.as_ref());
 
         if data.len() != 78 {
-            return Err(Electrum2DescriptorError::Base58Error(
-                base58::Error::InvalidLength(data.len()),
-            ));
+            return Err(Electrum2DescriptorError::InvalidLength(data.len()));
         }
 
         Ok(base58::encode_check(&data))
     }
 }
 
-fn match_electrum_xprv(version: &[u8]) -> Result<(Network, String), base58::Error> {
+fn match_electrum_xprv(version: &[u8]) -> Result<(Network, String), Electrum2DescriptorError> {
     let sentinels = initialize_sentinels();
     let sentinel = sentinels
         .iter()
         .find(|sent| sent.0 == version)
         .ok_or_else(|| {
-            base58::Error::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())
+            Electrum2DescriptorError::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())
         })?;
     Ok((sentinel.1, sentinel.2.clone()))
 }
@@ -204,7 +200,7 @@ mod tests {
     #[test]
     fn test_vprv_to_electrum() {
         let electrum_xprv = ElectrumExtendedPrivKey::new(
-            ExtendedPrivKey::from_str("xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD").unwrap(),
+            Xpriv::from_str("xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD").unwrap(),
             "sh(wpkh".to_string(),
         );
         assert_eq!(electrum_xprv.electrum_xprv().unwrap(), "yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF");

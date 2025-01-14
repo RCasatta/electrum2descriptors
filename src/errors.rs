@@ -39,6 +39,10 @@ pub enum Electrum2DescriptorError {
     TooManyKeyStores(usize),
     #[error("Unknown script kind: {0}")]
     UnknownScriptKind(String),
+    #[error("Incorrect length of string representation: {0}")]
+    InvalidLength(usize),
+    #[error("Unknown sentinel")]
+    InvalidExtendedKeyVersion([u8; 4]),
     #[error("{0}")]
     GenericBorrow(&'static str),
 }

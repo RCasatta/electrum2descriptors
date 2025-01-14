@@ -1,13 +1,13 @@
 use crate::{Descriptors, Electrum2DescriptorError, ElectrumExtendedKey};
 use bitcoin::base58;
-use bitcoin::bip32::{ChainCode, ChildNumber, ExtendedPubKey, Fingerprint};
+use bitcoin::bip32::{ChainCode, ChildNumber, Fingerprint, Xpub};
 use bitcoin::secp256k1;
-use bitcoin::Network;
+use bitcoin::{Network, NetworkKind};
 use std::convert::TryInto;
 use std::str::FromStr;
 
 pub struct ElectrumExtendedPubKey {
-    xpub: ExtendedPubKey,
+    xpub: Xpub,
     kind: String,
 }
 
@@ -93,17 +93,15 @@ impl FromStr for ElectrumExtendedPubKey {
         let data = base58::decode_check(s)?;
 
         if data.len() != 78 {
-            return Err(Electrum2DescriptorError::Base58Error(
-                base58::Error::InvalidLength(data.len()),
-            ));
+            return Err(Electrum2DescriptorError::InvalidLength(data.len()));
         }
 
         let cn_int = u32::from_be_bytes(data[9..13].try_into().unwrap());
         let child_number: ChildNumber = ChildNumber::from(cn_int);
         let (network, kind) = match_electrum_xpub(&data[0..4])?;
 
-        let xpub = ExtendedPubKey {
-            network,
+        let xpub = Xpub {
+            network: network.into(),
             depth: data[4],
             parent_fingerprint: Fingerprint::from(&data[5..9].try_into().unwrap()),
             child_number,
@@ -137,12 +135,12 @@ impl ElectrumExtendedKey for ElectrumExtendedPubKey {
 
 impl ElectrumExtendedPubKey {
     /// Constructs a new instance
-    pub fn new(xpub: ExtendedPubKey, kind: String) -> Self {
+    pub fn new(xpub: Xpub, kind: String) -> Self {
         ElectrumExtendedPubKey { xpub, kind }
     }
 
     /// Returns the xpub
-    pub fn xpub(&self) -> &ExtendedPubKey {
+    pub fn xpub(&self) -> &Xpub {
         &self.xpub
     }
 
@@ -151,7 +149,7 @@ impl ElectrumExtendedPubKey {
         let sentinels = initialize_sentinels();
         let sentinel = sentinels
             .iter()
-            .find(|sent| sent.1 == self.xpub.network && sent.2 == self.kind)
+            .find(|sent| NetworkKind::from(sent.1) == self.xpub.network && sent.2 == self.kind)
             .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xpub.depth);
@@ -162,22 +160,20 @@ impl ElectrumExtendedPubKey {
         data.extend(&self.xpub.public_key.serialize()); // or serialize_uncompressed
 
         if data.len() != 78 {
-            return Err(Electrum2DescriptorError::Base58Error(
-                base58::Error::InvalidLength(data.len()),
-            ));
+            return Err(Electrum2DescriptorError::InvalidLength(data.len()));
         }
 
         Ok(base58::encode_check(&data))
     }
 }
 
-fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), base58::Error> {
+fn match_electrum_xpub(version: &[u8]) -> Result<(Network, String), Electrum2DescriptorError> {
     let sentinels = initialize_sentinels();
     let sentinel = sentinels
         .iter()
         .find(|sent| sent.0 == version)
         .ok_or_else(|| {
-            base58::Error::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())
+            Electrum2DescriptorError::InvalidExtendedKeyVersion(version[0..4].try_into().unwrap())
         })?;
     Ok((sentinel.1, sentinel.2.clone()))
 }
@@ -204,7 +200,7 @@ mod tests {
     #[test]
     fn test_vpub_to_electrum() {
         let electrum_xpub = ElectrumExtendedPubKey::new(
-            ExtendedPubKey::from_str("tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp").unwrap(), 
+            Xpub::from_str("tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp").unwrap(),
             "wpkh".to_string(),
         );
         assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
@@ -230,13 +226,14 @@ mod tests {
 
     fn test_first_address(electrum_xpub: &str, expected_first_address: &str) {
         let electrum_xpub = ElectrumExtendedPubKey::from_str(electrum_xpub).unwrap();
-        assert_eq!(electrum_xpub.xpub.network, Network::Bitcoin);
+        assert_eq!(electrum_xpub.xpub.network, Network::Bitcoin.into());
         let descriptors = electrum_xpub.to_descriptors();
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
             descriptors.external.parse().unwrap();
         let secp = Secp256k1::verification_only();
         let first_address = descriptor
             .at_derivation_index(0)
+            .unwrap()
             .derived_descriptor(&secp)
             .unwrap()
             .address(miniscript::bitcoin::Network::Bitcoin)
