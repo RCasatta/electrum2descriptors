@@ -10,14 +10,13 @@ use std::str::FromStr;
 fn main() -> Result<(), Electrum2DescriptorError> {
     let mut args = std::env::args();
     args.next(); // first is program name
-    let err_msg =
-        "You must specify an extended public or private key or an electrum wallet file as first argument";
+    let err_msg = "You must specify an extended public or private key or an electrum wallet file as first argument";
     let electrum_x = args
         .next()
-        .ok_or_else(|| Electrum2DescriptorError::GenericBorrow(err_msg))?;
+        .ok_or(Electrum2DescriptorError::GenericBorrow(err_msg))?;
     let descriptor = ElectrumExtendedPrivKey::from_str(&electrum_x)
-        .map(|e| e.to_descriptors())
-        .or_else(|_| ElectrumExtendedPubKey::from_str(&electrum_x).map(|e| e.to_descriptors()));
+        .map(|e| e.to_descriptor())
+        .or_else(|_| ElectrumExtendedPubKey::from_str(&electrum_x).map(|e| e.to_descriptor()));
     #[cfg(feature = "wallet_file")]
     let descriptor = descriptor.or_else(|_| {
         let wallet_file = Path::new(&electrum_x)
@@ -27,7 +26,7 @@ fn main() -> Result<(), Electrum2DescriptorError> {
             return Err(Electrum2DescriptorError::GenericBorrow(err_msg));
         }
         let wallet = ElectrumWalletFile::from_file(wallet_file.as_path())?;
-        wallet.to_descriptors()
+        wallet.to_descriptor()
     });
 
     println!("{:?}", descriptor?);

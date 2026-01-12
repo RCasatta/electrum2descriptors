@@ -4,7 +4,7 @@ use crate::{
 };
 use bitcoin::bip32::{Xpriv, Xpub};
 use regex::Regex;
-use serde::{de, ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de, ser::SerializeMap};
 use std::{fmt, io::BufReader, path::Path, str::FromStr, string::ToString};
 
 /// Representation of an electrum wallet file. Has custom serialization and de-serialization routines to more accurately represent what we need, and the electrum wallet file format.
@@ -82,8 +82,9 @@ impl ElectrumWalletFile {
 
     /// Construct from a single signature output descriptor. Only the external descriptor is needed, the change descriptor is implied.
     fn from_descriptor_singlesig(desc: &str) -> Result<Self, Electrum2DescriptorError> {
-        let re =
-            Regex::new(r#"(pkh|sh\(wpkh|sh\(wsh|wpkh|wsh)\((([tx]p(ub|rv)[0-9A-Za-z]+)/0/\*)\)+"#)?;
+        let re = Regex::new(
+            r#"(pkh|sh\(wpkh|sh\(wsh|wpkh|wsh)\((([tx]p(ub|rv)[0-9A-Za-z]+)/.*/\*)\)+"#,
+        )?;
         let captures = re.captures(desc).map(|captures| {
             captures
                 .iter()
@@ -99,7 +100,7 @@ impl ElectrumWalletFile {
                 return Err(Electrum2DescriptorError::UnknownDescriptorFormat(format!(
                     "{:?}",
                     captures
-                )))
+                )));
             }
         };
 
@@ -113,7 +114,7 @@ impl ElectrumWalletFile {
     /// Construct from a multisig output descriptor. Only the external descriptor is needed, the change descriptor is implied.
     fn from_descriptor_multisig(desc: &str) -> Result<Self, Electrum2DescriptorError> {
         let re = Regex::new(
-            r#"(sh|sh\(wsh|wsh)\(sortedmulti\((\d),([tx]p(ub|rv)[0-9A-Za-z]+/0/\*,?)+\)+"#,
+            r#"(sh|sh\(wsh|wsh)\(sortedmulti\((\d),([tx]p(ub|rv)[0-9A-Za-z]+/.*/\*,?)+\)+"#,
         )?;
         let captures = re.captures(desc).map(|captures| {
             captures
@@ -132,7 +133,7 @@ impl ElectrumWalletFile {
                 _ => {
                     return Err(Electrum2DescriptorError::UnknownScriptKind(
                         kind.to_string(),
-                    ))
+                    ));
                 }
             };
             let re = Regex::new(r#"[tx]p[ur][bv][0-9A-Za-z]+"#)?;
@@ -203,6 +204,12 @@ impl ElectrumWalletFile {
         }
     }
 
+    /// Generate multipath output descriptor matching the electrum wallet
+    pub fn to_descriptor(&self) -> Result<String, Electrum2DescriptorError> {
+        let desc = self.to_descriptors()?;
+        Ok(desc.external.replace("/0/*", "/<0;1>/*"))
+    }
+
     /// validate the internal structure
     fn validate(&self) -> Result<(), Electrum2DescriptorError> {
         let expected_keystores: usize = match self.wallet_type {
@@ -217,6 +224,7 @@ impl ElectrumWalletFile {
             ));
         }
 
+        #[allow(clippy::collapsible_if)]
         if let WalletType::Multisig(x, _y) = self.wallet_type {
             if x as usize > expected_keystores {
                 return Err(Electrum2DescriptorError::NumberSignaturesKeyStores(
@@ -294,7 +302,7 @@ impl<'de> Deserialize<'de> for ElectrumWalletFile {
             {
                 struct FieldVisitor;
 
-                impl<'de> de::Visitor<'de> for FieldVisitor {
+                impl de::Visitor<'_> for FieldVisitor {
                     type Value = Field;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

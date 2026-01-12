@@ -124,6 +124,13 @@ impl ElectrumExtendedKey for ElectrumExtendedPrivKey {
         self.xprv.to_string()
     }
 
+    /// Returns multipath descriptor
+    fn to_descriptor(&self) -> String {
+        let xprv = self.xprv.to_string();
+        let closing_parenthesis = if self.kind.contains('(') { ")" } else { "" };
+        format!("{}({}/<0;1>/*){}", self.kind, xprv, closing_parenthesis)
+    }
+
     /// Returns internal and external descriptor
     fn to_descriptors(&self) -> Descriptors {
         let xprv = self.xprv.to_string();
@@ -151,7 +158,7 @@ impl ElectrumExtendedPrivKey {
         let sentinel = sentinels
             .iter()
             .find(|sent| NetworkKind::from(sent.1) == self.xprv.network && sent.2 == self.kind)
-            .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
+            .ok_or(Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xprv.depth);
         data.extend(self.xprv.parent_fingerprint.as_bytes());
@@ -188,13 +195,30 @@ mod tests {
     #[test]
     fn test_vprv_from_electrum() {
         let electrum_xprv = ElectrumExtendedPrivKey::from_str("yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF").unwrap();
-        assert_eq!(electrum_xprv.xprv.to_string(),"xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
+        assert_eq!(
+            electrum_xprv.xprv.to_string(),
+            "xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD"
+        );
         assert_eq!(electrum_xprv.kind, "sh(wpkh");
+        let descriptor = electrum_xprv.to_descriptor();
+        assert_eq!(
+            descriptor,
+            "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/<0;1>/*))"
+        );
         let descriptors = electrum_xprv.to_descriptors();
-        assert_eq!(descriptors.external, "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/0/*))");
-        assert_eq!(descriptors.change, "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/1/*))");
+        assert_eq!(
+            descriptors.external,
+            "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/0/*))"
+        );
+        assert_eq!(
+            descriptors.change,
+            "sh(wpkh(xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD/1/*))"
+        );
         let xprv = electrum_xprv.xprv();
-        assert_eq!(xprv.to_string(), "xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD");
+        assert_eq!(
+            xprv.to_string(),
+            "xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD"
+        );
     }
 
     #[test]
@@ -203,7 +227,10 @@ mod tests {
             Xpriv::from_str("xprv9y7S1RkggDtZnP1RSzJ7PwUR4MUfF66Wz2jGv9TwJM52WLGmnnrQLLzBSTi7rNtBk4SGeQHBj5G4CuQvPXSn58BmhvX9vk6YzcMm37VuNYD").unwrap(),
             "sh(wpkh".to_string(),
         );
-        assert_eq!(electrum_xprv.electrum_xprv().unwrap(), "yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF");
+        assert_eq!(
+            electrum_xprv.electrum_xprv().unwrap(),
+            "yprvAHwhK6RbpuS3dgCYHM5jc2ZvEKd7Bi61u9FVhYMpgMSuZS613T1xxQeKTffhrHY79hZ5PsskBjcc6C2V7DrnsMsNaGDaWev3GLRQRgV7hxF"
+        );
     }
 
     #[test]

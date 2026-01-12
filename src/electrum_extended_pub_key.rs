@@ -131,6 +131,13 @@ impl ElectrumExtendedKey for ElectrumExtendedPubKey {
             [0, 1].map(|i| format!("{}({}/{}/*){}", self.kind, xpub, i, closing_parenthesis));
         Descriptors { external, change }
     }
+
+    /// Returns multipath descriptor
+    fn to_descriptor(&self) -> String {
+        let xpub = self.xpub.to_string();
+        let closing_parenthesis = if self.kind.contains('(') { ")" } else { "" };
+        format!("{}({}/<0;1>/*){}", self.kind, xpub, closing_parenthesis)
+    }
 }
 
 impl ElectrumExtendedPubKey {
@@ -150,7 +157,7 @@ impl ElectrumExtendedPubKey {
         let sentinel = sentinels
             .iter()
             .find(|sent| NetworkKind::from(sent.1) == self.xpub.network && sent.2 == self.kind)
-            .ok_or_else(|| Electrum2DescriptorError::UnknownType)?;
+            .ok_or(Electrum2DescriptorError::UnknownType)?;
         let mut data = Vec::from(&sentinel.0[..]);
         data.push(self.xpub.depth);
         data.extend(self.xpub.parent_fingerprint.as_bytes());
@@ -188,13 +195,30 @@ mod tests {
     #[test]
     fn test_vpub_from_electrum() {
         let electrum_xpub = ElectrumExtendedPubKey::from_str("vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv").unwrap();
-        assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
+        assert_eq!(
+            electrum_xpub.xpub.to_string(),
+            "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp"
+        );
         assert_eq!(electrum_xpub.kind, "wpkh");
+        let descriptor = electrum_xpub.to_descriptor();
+        assert_eq!(
+            descriptor,
+            "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/<0;1>/*)"
+        );
         let descriptors = electrum_xpub.to_descriptors();
-        assert_eq!(descriptors.external, "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)");
-        assert_eq!(descriptors.change, "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)");
+        assert_eq!(
+            descriptors.external,
+            "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/0/*)"
+        );
+        assert_eq!(
+            descriptors.change,
+            "wpkh(tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp/1/*)"
+        );
         let xpub = electrum_xpub.xpub();
-        assert_eq!(xpub.to_string(), "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
+        assert_eq!(
+            xpub.to_string(),
+            "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp"
+        );
     }
 
     #[test]
@@ -203,9 +227,15 @@ mod tests {
             Xpub::from_str("tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp").unwrap(),
             "wpkh".to_string(),
         );
-        assert_eq!(electrum_xpub.xpub.to_string(),"tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp");
+        assert_eq!(
+            electrum_xpub.xpub.to_string(),
+            "tpubD9ZjaMn3rbP1cAVwJy6UcEjFfTLT7W6DbfHdS3Wn48meExtVfKmiH9meWCrSmE9qXLYbGcHC5LxLcdfLZTzwme23qAJoRzRhzbd68dHeyjp"
+        );
         assert_eq!(electrum_xpub.kind, "wpkh");
-        assert_eq!(electrum_xpub.electrum_xpub().unwrap(), "vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv");
+        assert_eq!(
+            electrum_xpub.electrum_xpub().unwrap(),
+            "vpub5VXaSncXqxLbdmvrC4Y8z9CszPwuEscADoetWhfrxDFzPUbL5nbVtanYDkrVEutkv9n5A5aCcvRC9swbjDKgHjCZ2tAeae8VsBuPbS8KpXv"
+        );
     }
 
     #[test]
@@ -219,9 +249,18 @@ mod tests {
     #[test]
     fn test_slip121_vectors() {
         // from https://github.com/satoshilabs/slips/blob/master/slip-0132.md
-        test_first_address("xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj","1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA");
-        test_first_address("ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNB6VvmSEgytSER9azLDWCxoJwW7Ke7icmizBMXrzBx9979FfaHxHcrArf3zbeJJJUZPf663zsP","37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf");
-        test_first_address("zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs","bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+        test_first_address(
+            "xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj",
+            "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA",
+        );
+        test_first_address(
+            "ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNB6VvmSEgytSER9azLDWCxoJwW7Ke7icmizBMXrzBx9979FfaHxHcrArf3zbeJJJUZPf663zsP",
+            "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf",
+        );
+        test_first_address(
+            "zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs",
+            "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+        );
     }
 
     fn test_first_address(electrum_xpub: &str, expected_first_address: &str) {
@@ -230,6 +269,41 @@ mod tests {
         let descriptors = electrum_xpub.to_descriptors();
         let descriptor: miniscript::Descriptor<DescriptorPublicKey> =
             descriptors.external.parse().unwrap();
+        let secp = Secp256k1::verification_only();
+        let first_address = descriptor
+            .at_derivation_index(0)
+            .unwrap()
+            .derived_descriptor(&secp)
+            .unwrap()
+            .address(miniscript::bitcoin::Network::Bitcoin)
+            .unwrap()
+            .to_string();
+        assert_eq!(expected_first_address, first_address);
+    }
+
+    #[test]
+    fn test_slip121_vectors_multipath() {
+        // from https://github.com/satoshilabs/slips/blob/master/slip-0132.md
+        test_first_address_multipath(
+            "xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj",
+            "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA",
+        );
+        test_first_address_multipath(
+            "ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNB6VvmSEgytSER9azLDWCxoJwW7Ke7icmizBMXrzBx9979FfaHxHcrArf3zbeJJJUZPf663zsP",
+            "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf",
+        );
+        test_first_address_multipath(
+            "zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs",
+            "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+        );
+    }
+
+    fn test_first_address_multipath(electrum_xpub: &str, expected_first_address: &str) {
+        let electrum_xpub = ElectrumExtendedPubKey::from_str(electrum_xpub).unwrap();
+        assert_eq!(electrum_xpub.xpub.network, Network::Bitcoin.into());
+        let descriptor = electrum_xpub.to_descriptor();
+        let descriptor = descriptor.replace("<0;1>", "0");
+        let descriptor: miniscript::Descriptor<DescriptorPublicKey> = descriptor.parse().unwrap();
         let secp = Secp256k1::verification_only();
         let first_address = descriptor
             .at_derivation_index(0)
